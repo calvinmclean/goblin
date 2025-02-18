@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package manager;
+
+option go_package = "./pb_manager";
+
+// Service definition
+service Manager {
+  rpc GetIP (GetIPRequest) returns (stream GetIPResponse);
+}
+
+// Empty request message
+message GetIPRequest {
+  string subdomain = 1;
+}
+
+// Response message containing the allocated IP
+message GetIPResponse {
+  string ip_address = 1;
+}

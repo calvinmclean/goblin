@@ -43,6 +43,7 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 		}
 
 		m.allocateIP(ctx, ip, subdomain)
+		return ip, nil
 	}
 
 	iface, err := net.InterfaceByName("lo0")
@@ -115,7 +116,7 @@ func (m Manager) removeIP(ctx context.Context, ip, subdomain string) {
 	<-ctx.Done()
 	now := time.Now()
 	m.allocatedIPs[ip] = &now
-	delete(m.subdomains, subdomain)
+	// delete(m.subdomains, subdomain)
 }
 
 func (m Manager) RunDNS(ctx context.Context, addr string) error {
