@@ -1,0 +1,9 @@
+version: "3"
+
+tasks:
+  build-plugins:
+    desc: Build example plugins
+    dir: ./plugins/examples
+    cmds:
+      - go build -buildmode=plugin -o ./hello-world.so ./hello-world
+      - go build -buildmode=plugin -o ./howdy-world.so ./howdy-world
