@@ -3,15 +3,10 @@ package dns
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log"
 	"log/slog"
 	"net"
 	"strings"
-	"sync"
 	"time"
-
-	"github.com/miekg/dns"
 )
 
 const subnet = "10.0.0."
@@ -28,9 +23,7 @@ type Manager struct {
 	logger       *slog.Logger
 }
 
-func New(domain string, logLevel slog.Level) Manager {
-	slog.SetLogLoggerLevel(logLevel)
-
+func New(domain string) Manager {
 	return Manager{
 		allocatedIPs: map[string]*time.Time{},
 		subdomains:   map[string]string{},
@@ -125,65 +118,4 @@ func (m Manager) removeIP(ctx context.Context, ip string) {
 	m.allocatedIPs[ip] = &now
 
 	m.logger.Debug("removed IP", "ip", ip)
-}
-
-func (m Manager) RunDNS(ctx context.Context, addr string) error {
-	dns.HandleFunc(".", m.handleDNSRequest)
-	server := &dns.Server{
-		Addr: addr,
-		Net:  "udp",
-	}
-	log.Printf("starting local DNS server on %s...", server.Addr)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		<-ctx.Done()
-		err := server.Shutdown()
-		if err != nil {
-			log.Fatalf("failed to stop DNS server: %v", err)
-		}
-	}()
-
-	err := server.ListenAndServe()
-	if err != nil {
-		log.Fatalf("failed to run DNS server: %v", err)
-	}
-
-	wg.Wait()
-
-	return nil
-}
-
-func (m Manager) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
-	msg := new(dns.Msg)
-	msg.SetReply(r)
-
-	for _, q := range r.Question {
-		if !strings.HasSuffix(q.Name, m.domain) {
-			continue
-		}
-
-		subdomain := getSubdomain(q.Name)
-		ip, ok := m.subdomains[subdomain]
-		if !ok {
-			continue
-		}
-
-		rr, _ := dns.NewRR(fmt.Sprintf("%s IN A %s", q.Name, ip))
-		rr.Header().Ttl = 0
-		msg.Answer = append(msg.Answer, rr)
-	}
-
-	w.WriteMsg(msg)
-}
-
-func getSubdomain(d string) string {
-	parts := strings.Split(d, ".")
-	if len(parts) == 0 {
-		return ""
-	}
-	return parts[0]
 }

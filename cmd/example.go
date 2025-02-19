@@ -3,7 +3,6 @@ package cmd
 import (
 	"dns-plugin-thing/dns"
 	"dns-plugin-thing/server"
-	"fmt"
 	"log"
 	"log/slog"
 	"time"
@@ -18,7 +17,9 @@ var ExampleCmd = &cli.Command{
 }
 
 func runExample(c *cli.Context) error {
-	dnsMgr := dns.New(".gotest.", slog.LevelDebug)
+	slog.SetLogLoggerLevel(slog.LevelDebug)
+
+	dnsMgr := dns.New(".gotest.")
 
 	go func() {
 		err := runPlugin(c.Context, dnsMgr, "./plugins/examples/hello-world.so", "helloworld", 0)
@@ -46,16 +47,10 @@ func runExample(c *cli.Context) error {
 	}()
 
 	server := server.New(dnsMgr)
-	go func() {
-		err := server.Run(c.Context, grpcServerAddr)
-		if err != nil {
-			log.Fatalf("error running GRPC server: %v", err)
-		}
-	}()
-
-	err := dnsMgr.RunDNS(c.Context, dnsServerAddr)
+	err := server.Run(c.Context, grpcServerAddr, dnsServerAddr)
 	if err != nil {
-		return fmt.Errorf("error running DNS server: %w", err)
+		log.Fatalf("error running GRPC server: %v", err)
 	}
+
 	return nil
 }

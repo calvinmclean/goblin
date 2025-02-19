@@ -5,6 +5,7 @@ import (
 	"dns-plugin-thing/api/gen/pb_manager"
 	"dns-plugin-thing/dns"
 	"fmt"
+	"log"
 	"net"
 	"sync"
 
@@ -23,8 +24,8 @@ func New(mgr dns.Manager) Server {
 	}
 }
 
-func (s Server) Run(ctx context.Context, addr string) error {
-	listener, err := net.Listen("tcp", addr)
+func (s Server) Run(ctx context.Context, grpcAddr, dnsAddr string) error {
+	listener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		return fmt.Errorf("failed to create Listener: %w", err)
 	}
@@ -33,18 +34,29 @@ func (s Server) Run(ctx context.Context, addr string) error {
 	pb_manager.RegisterManagerServer(grpcServer, s)
 
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(3)
 
 	go func() {
-		defer wg.Done()
 		<-ctx.Done()
 		grpcServer.GracefulStop()
+		wg.Done()
 	}()
 
-	err = grpcServer.Serve(listener)
-	if err != nil {
-		return fmt.Errorf("failed to serve: %w", err)
-	}
+	go func() {
+		err = grpcServer.Serve(listener)
+		if err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		err = s.mgr.RunDNS(ctx, dnsAddr)
+		if err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+		wg.Done()
+	}()
 
 	wg.Wait()
 
