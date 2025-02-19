@@ -44,19 +44,21 @@ func (m Manager) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	msg := new(dns.Msg)
 	msg.SetReply(r)
 
+	m.logger.Debug("received DNS request")
+
 	for _, q := range r.Question {
 		if !strings.HasSuffix(q.Name, m.domain) {
 			continue
 		}
 
 		subdomain := getSubdomain(q.Name)
-		ip, ok := m.subdomains[subdomain]
-		if !ok {
+		rec, ok := m.subdomains[subdomain]
+		if !ok || rec.removedAt != nil {
 			continue
 		}
-		m.logger.Debug("found ip for subdomain", "subdomain", subdomain, "ip", ip)
+		m.logger.Debug("found ip for subdomain", "subdomain", subdomain, "ip", rec.ip)
 
-		rr, _ := dns.NewRR(fmt.Sprintf("%s IN A %s", q.Name, ip))
+		rr, _ := dns.NewRR(fmt.Sprintf("%s IN A %s", q.Name, rec.ip))
 		rr.Header().Ttl = 0
 		msg.Answer = append(msg.Answer, rr)
 	}

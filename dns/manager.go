@@ -16,32 +16,39 @@ var (
 	ErrSubdomainInUse = errors.New("subdomain already in-use")
 )
 
+type record struct {
+	ip        string
+	subdomain string
+	removedAt *time.Time
+}
+
 type Manager struct {
-	allocatedIPs map[string]*time.Time
-	subdomains   map[string]string
-	domain       string
-	logger       *slog.Logger
+	// allocatedIPs and subdomains point to the same data but with IP or Subdomain as the key
+	allocatedIPs map[string]*record
+	subdomains   map[string]*record
+
+	domain string
+	logger *slog.Logger
 }
 
 func New(domain string) Manager {
 	return Manager{
-		allocatedIPs: map[string]*time.Time{},
-		subdomains:   map[string]string{},
+		allocatedIPs: map[string]*record{},
+		subdomains:   map[string]*record{},
 		domain:       domain,
 		logger:       slog.Default(),
 	}
 }
 
 func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
-	ip, exists := m.subdomains[subdomain]
-	if exists {
-		removedAt := m.allocatedIPs[ip]
-		if removedAt == nil {
+	rec := m.subdomains[subdomain]
+	if rec != nil {
+		if rec.removedAt == nil {
 			return "", ErrSubdomainInUse
 		}
 
-		m.allocateIP(ctx, ip, subdomain)
-		return ip, nil
+		m.allocateIP(ctx, rec.ip, subdomain)
+		return rec.ip, nil
 	}
 
 	iface, err := net.InterfaceByName("lo0")
@@ -54,7 +61,7 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 		return "", err
 	}
 
-	unallocatedIPs := map[string]*time.Time{}
+	unallocatedIPs := []*record{}
 	for _, addr := range addrs {
 		ipNet, ok := addr.(*net.IPNet)
 		if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil {
@@ -66,11 +73,11 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 			continue
 		}
 
-		removedAt, inUse := m.allocatedIPs[ip]
-		if inUse {
+		rec := m.allocatedIPs[ip]
+		if rec != nil {
 			// add to unallocatedIPs if allocation is closed so it can be used as backup
-			if removedAt != nil {
-				unallocatedIPs[ip] = removedAt
+			if rec.removedAt != nil {
+				unallocatedIPs = append(unallocatedIPs, rec)
 			}
 			continue
 		}
@@ -89,33 +96,38 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 	return "", ErrNoAvailableIPs
 }
 
-func findOldestDeallocatedIP(unallocatedIPs map[string]*time.Time) string {
-	resultIP := ""
-	for ip, removedAt := range unallocatedIPs {
-		if resultIP == "" {
-			resultIP = ip
+func findOldestDeallocatedIP(unallocatedIPs []*record) string {
+	var resultIP *record
+	for i := range unallocatedIPs {
+		rec := unallocatedIPs[i]
+
+		if resultIP == nil {
+			resultIP = rec
 			continue
 		}
-		if removedAt.Before(*unallocatedIPs[resultIP]) {
-			resultIP = ip
+
+		if rec.removedAt.Before(*resultIP.removedAt) {
+			resultIP = rec
 		}
 	}
 
-	return resultIP
+	return resultIP.ip
 }
 
 func (m Manager) allocateIP(ctx context.Context, ip, subdomain string) {
-	m.allocatedIPs[ip] = nil
-	m.subdomains[subdomain] = ip
-	go m.removeIP(ctx, ip)
+	rec := &record{ip, subdomain, nil}
+
+	m.allocatedIPs[ip] = rec
+	m.subdomains[subdomain] = rec
+	go m.removeIP(ctx, rec)
 
 	m.logger.Debug("allocated IP", "ip", ip, "subdomain", subdomain)
 }
 
-func (m Manager) removeIP(ctx context.Context, ip string) {
+func (m Manager) removeIP(ctx context.Context, rec *record) {
 	<-ctx.Done()
 	now := time.Now()
-	m.allocatedIPs[ip] = &now
+	rec.removedAt = &now
 
-	m.logger.Debug("removed IP", "ip", ip)
+	m.logger.Debug("removed IP", "ip", rec.ip)
 }
