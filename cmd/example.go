@@ -5,6 +5,7 @@ import (
 	"dns-plugin-thing/server"
 	"fmt"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -17,7 +18,7 @@ var ExampleCmd = &cli.Command{
 }
 
 func runExample(c *cli.Context) error {
-	dnsMgr := dns.New(".gotest.")
+	dnsMgr := dns.New(".gotest.", slog.LevelDebug)
 
 	go func() {
 		err := runPlugin(c.Context, dnsMgr, "./plugins/examples/hello-world.so", "helloworld", 0)

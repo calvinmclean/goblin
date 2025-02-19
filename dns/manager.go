@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"strings"
 	"sync"
@@ -17,20 +18,24 @@ const subnet = "10.0.0."
 
 var (
 	ErrNoAvailableIPs = errors.New("no available IPs")
-	ErrHostnameInUse  = errors.New("hostname already in-use")
+	ErrSubdomainInUse = errors.New("subdomain already in-use")
 )
 
 type Manager struct {
 	allocatedIPs map[string]*time.Time
 	subdomains   map[string]string
 	domain       string
+	logger       *slog.Logger
 }
 
-func New(domain string) Manager {
+func New(domain string, logLevel slog.Level) Manager {
+	slog.SetLogLoggerLevel(logLevel)
+
 	return Manager{
 		allocatedIPs: map[string]*time.Time{},
 		subdomains:   map[string]string{},
 		domain:       domain,
+		logger:       slog.Default(),
 	}
 }
 
@@ -39,7 +44,7 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 	if exists {
 		removedAt := m.allocatedIPs[ip]
 		if removedAt == nil {
-			return "", ErrHostnameInUse
+			return "", ErrSubdomainInUse
 		}
 
 		m.allocateIP(ctx, ip, subdomain)
@@ -109,14 +114,17 @@ func findOldestDeallocatedIP(unallocatedIPs map[string]*time.Time) string {
 func (m Manager) allocateIP(ctx context.Context, ip, subdomain string) {
 	m.allocatedIPs[ip] = nil
 	m.subdomains[subdomain] = ip
-	go m.removeIP(ctx, ip, subdomain)
+	go m.removeIP(ctx, ip)
+
+	m.logger.Debug("allocated IP", "ip", ip, "subdomain", subdomain)
 }
 
-func (m Manager) removeIP(ctx context.Context, ip, subdomain string) {
+func (m Manager) removeIP(ctx context.Context, ip string) {
 	<-ctx.Done()
 	now := time.Now()
 	m.allocatedIPs[ip] = &now
-	// delete(m.subdomains, subdomain)
+
+	m.logger.Debug("removed IP", "ip", ip)
 }
 
 func (m Manager) RunDNS(ctx context.Context, addr string) error {

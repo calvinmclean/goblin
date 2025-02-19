@@ -26,3 +26,16 @@ func Load(fname string) (RunFunc, error) {
 
 	return RunFunc(runFunc), nil
 }
+
+type IPGetter interface {
+	GetIP(ctx context.Context, subdomain string) (string, error)
+}
+
+func Run(ctx context.Context, run RunFunc, getter IPGetter, subdomain string) error {
+	ip, err := getter.GetIP(ctx, subdomain)
+	if err != nil {
+		return fmt.Errorf("error getting IP: %w", err)
+	}
+
+	return run(ctx, ip)
+}

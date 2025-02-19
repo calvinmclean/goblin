@@ -5,6 +5,7 @@ import (
 	"dns-plugin-thing/server"
 	"fmt"
 	"log"
+	"log/slog"
 
 	"github.com/urfave/cli/v2"
 )
@@ -22,7 +23,7 @@ var ServerCmd = &cli.Command{
 }
 
 func runServer(c *cli.Context) error {
-	dnsMgr := dns.New(dnsDomain)
+	dnsMgr := dns.New(dnsDomain, slog.LevelDebug)
 
 	server := server.New(dnsMgr)
 	go func() {

@@ -7,27 +7,63 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/urfave/cli/v2"
 )
 
-func runPlugin(ctx context.Context, dnsMgr dns.Manager, fname, hostname string, timeout time.Duration) error {
+var (
+	filename, subdomain string
+	PluginCmd           = &cli.Command{
+		Name:        "plugin",
+		Description: "run a plugin",
+		Action:      runPluginCmd,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "filename",
+				Aliases:     []string{"f"},
+				Required:    true,
+				TakesFile:   true,
+				Usage:       "filename for *.so plugin",
+				Destination: &filename,
+			},
+			&cli.StringFlag{
+				Name:        "subdomain",
+				Aliases:     []string{"d"},
+				Required:    true,
+				Usage:       "subdomain name",
+				Destination: &subdomain,
+			},
+		},
+	}
+)
+
+func runPluginCmd(c *cli.Context) error {
+	client, err := dns.NewGRPC(grpcServerAddr)
+	if err != nil {
+		return fmt.Errorf("error creating GRPC Client: %w", err)
+	}
+	return runPlugin(c.Context, client, filename, subdomain, 0)
+}
+
+func runPlugin(ctx context.Context, dnsMgr plugins.IPGetter, fname, subdomain string, timeout time.Duration) error {
 	if timeout != 0 {
 		timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 		ctx = timeoutCtx
 	}
 
-	log.Printf("starting plugin: %q", hostname)
+	log.Printf("starting plugin: %q", subdomain)
+
 	run, err := plugins.Load(fname)
 	if err != nil {
 		return fmt.Errorf("error loading plugin: %w", err)
 	}
 
-	ip, err := dnsMgr.GetIP(ctx, hostname)
+	err = plugins.Run(ctx, run, dnsMgr, subdomain)
 	if err != nil {
-		return fmt.Errorf("error getting IP: %w", err)
+		return fmt.Errorf("error running plugin: %w", err)
 	}
 
-	err = run(ctx, ip)
-	log.Printf("stopped plugin: %q", hostname)
+	log.Printf("stopped plugin: %q", subdomain)
 	return err
 }
