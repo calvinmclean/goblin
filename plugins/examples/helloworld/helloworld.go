@@ -1,4 +1,4 @@
-package main
+package helloworld
 
 import (
 	"context"
@@ -8,9 +8,7 @@ import (
 	"sync"
 )
 
-const greeting = "Hello"
-
-func Run(ctx context.Context, ip string) error {
+func Run(ctx context.Context, greeting, ip string) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s, World!\n", greeting)
