@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"dns-plugin-thing/dns"
+	"github.com/calvinmclean/goblin/dns"
 
 	"github.com/urfave/cli/v2"
 )

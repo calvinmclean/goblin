@@ -1,12 +1,13 @@
 package cmd
 
 import (
-	"dns-plugin-thing/dns"
-	"dns-plugin-thing/server"
 	"fmt"
 	"log"
 	"log/slog"
 	"time"
+
+	"github.com/calvinmclean/goblin/dns"
+	"github.com/calvinmclean/goblin/server"
 
 	"github.com/urfave/cli/v2"
 )
@@ -20,7 +21,7 @@ var ExampleCmd = &cli.Command{
 func runExample(c *cli.Context) error {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
-	dnsMgr, err := dns.New("gotest", dnsServerAddr)
+	dnsMgr, err := dns.New("goblin", dnsServerAddr)
 	if err != nil {
 		return fmt.Errorf("error creating DNS Manager: %w", err)
 	}

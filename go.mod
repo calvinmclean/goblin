@@ -1,4 +1,4 @@
-module dns-plugin-thing
+module github.com/calvinmclean/goblin
 
 go 1.23.4
 

@@ -1,29 +1,32 @@
-# Title?
+# GOBLIN
 
-This program is used to run Go applications locally with DNS-resolved addresses. It works by running applications on private IPs and using a custom DNS resolver and server to access them.
+**GO** **B**ack-end **L**ocal **I**nfrastructure **N**etwork
+
+Goblin is used to run Go applications locally with DNS-resolved addresses. It works by running applications on private IPs and using a custom DNS resolver and server to access them.
 
 ## How does it work?
 
 This consists of two main parts:
 
-1. The server running in the background
+1. Goblin server (runs in the background)
     - This provides a DNS server for handling DNS resolution for your applications
     - It also runs a GRPC service that allows an application to request an IP and register a subdomain
-2. Application wrapper
+
+2. Goblin plugin runner
     - This component wraps a compiled Go plugin (`*.so` file). It handles the GRPC request to get an allocated IP and register the subdomain
     - This part is not strictly necessary since an application can be implemented to request an IP on its own. This method allows user applications to exist without any imports or specific handling related to domains and IPs
 
 
 ## Getting started
 
-This requires a few system-level changes before it can be used. Eventually the server will handle these steps on its own if it's run with `sudo`, but for now it is manual setup since things generally should not run with `sudo`.
+Goblin requires a few system-level changes before it can be used. Eventually the server will handle these steps on its own if it's run with `sudo`, but for now it is manual setup since things generally should not run with `sudo`.
 
-1. Create a custom top-level domain resolver setting at `/etc/resolver/{domain}` (The application's default is `gotest`)
+1. Create a custom top-level domain resolver setting at `/etc/resolver/{domain}` (The application's default is `goblin`)
     ```
     nameserver 127.0.0.1
     port 5053
     ```
-    - If you create `/etc/resolver/gotest`, all DNS requests for `*.gotest` will use the DNS server at `127.0.0.1:5053`
+    - If you create `/etc/resolver/goblin`, all DNS requests for `*.goblin` will use the DNS server at `127.0.0.1:5053`
 
 1. Create IP aliases so your applications can run on private local IPs
     ```shell
@@ -42,7 +45,7 @@ This requires a few system-level changes before it can be used. Eventually the s
 
 1. Run the server
     ```shell
-    go run cmd/dns-plugin-thing/main.go server
+    go run cmd/goblin/main.go server
     ```
 
 1. Implement `Run(ctx context.Context, ipAddress string) error` in your application's `main` package and compile with `go build -buildmode=plugin` (or build the existing examples in this repository)
@@ -55,12 +58,12 @@ This requires a few system-level changes before it can be used. Eventually the s
 
 1. Run the plugin wrapper:
     ```shell
-    go run cmd/dns-plugin-thing/main.go plugin -f ./example-plugins/helloworld/cmd/hello/hello.so -d hello
+    go run cmd/goblin/main.go plugin -f ./example-plugins/helloworld/cmd/hello/hello.so -d hello
     ```
 
 1. Use `curl` to make a request to the application using the registered domain name
     ```shell
-    curl hello.gotest:8080
+    curl hello.goblin:8080
     ```
 
 1. Repeat the last 2 steps with different subdomains and/or modules!
@@ -68,12 +71,12 @@ This requires a few system-level changes before it can be used. Eventually the s
 
 ## About plugins
 
-A [Go plugin](https://pkg.go.dev/plugin) is Go code compiled into a shared object (`.so) file that can be loaded and executed by another Go program at runtime. After loading a plugin, the program can look up a symbol by name and use type-assertion to use it like any other type. This means that the shared object file needs to provide the type that is expected.
+A [Go plugin](https://pkg.go.dev/plugin) is Go code compiled into a shared object (`.so) file that can be loaded and executed by another Go program at runtime. After loading a plugin, Goblin can look up a symbol by name and use type-assertion to use it like any other type. This means that the shared object file needs to provide the type that is expected.
 
-This program could work without plugins by providing a wrapper library or `init` function that is imported by another application to handle the IP address allocation. Why didn't I do that instead?
-- If this is a library, it would have to be imported into production code as well and controlled with other configurations. Since it exposes control to the program's operation externally, that's not ideal
+Goblin could work without plugins by providing a wrapper library or `init` function that is imported by another application to handle the IP address allocation. Why didn't I do that instead?
+- If Goblin is a library, it would have to be imported into production code as well and controlled with other configurations. Since it exposes control to the program's operation externally, that's not ideal
 - A library would likely have stricter implementation requirements and could interfere with normal development
-- If the application is a plugin, this program has full control of its runtime and doesn't rely on user implementation
+- If the application is a plugin, Goblin has full control of its runtime and doesn't rely on user implementation
 - As I add more implementation options that allow running different plugin symbols, this will be a really flexible and non-invasive way to execute a variety of applications
 - This is an interesting plugins project and fun to learn about
 
@@ -82,11 +85,11 @@ It's definitely possible that this feature would be added optionally in the futu
 
 ## Implementing your own application
 
-This program will look for and execute one of these symbols (in this order) from the plugin shared-object:
+Goblin will look for and execute one of these symbols (in this order) from the plugin shared-object:
 
 | Type                        | Symbol | Description          |
 |-----------------------------|--------|----------------------|
-| `func(ctx context.Context, ipAddress string) error` | `Run`   | The simple `Run` function can easily be used by a `main` function in a program's regular operation and also loaded by this wrapper |
+| `func(ctx context.Context, ipAddress string) error` | `Run`   | The simple `Run` function can easily be used by a `main` function in a program's regular operation and also loaded by Goblin |
 
 
 ### Example

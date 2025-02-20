@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"context"
-	"dns-plugin-thing/dns"
-	"dns-plugin-thing/plugins"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/calvinmclean/goblin/dns"
+	"github.com/calvinmclean/goblin/plugins"
 
 	"github.com/urfave/cli/v2"
 )

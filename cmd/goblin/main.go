@@ -4,14 +4,14 @@ import (
 	"log"
 	"os"
 
-	"dns-plugin-thing/cmd"
+	"github.com/calvinmclean/goblin/cmd"
 
 	"github.com/urfave/cli/v2"
 )
 
 func main() {
 	app := &cli.App{
-		Name: "dns-plugin-thing",
+		Name: "goblin",
 		Commands: []*cli.Command{
 			cmd.ClientCmd,
 			cmd.ServerCmd,

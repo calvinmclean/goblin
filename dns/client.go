@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"dns-plugin-thing/api/gen/pb_manager"
+	"github.com/calvinmclean/goblin/api/gen/pb_manager"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

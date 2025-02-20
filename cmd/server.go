@@ -1,12 +1,13 @@
 package cmd
 
 import (
-	"dns-plugin-thing/dns"
-	"dns-plugin-thing/server"
 	"errors"
 	"fmt"
 	"log"
 	"log/slog"
+
+	"github.com/calvinmclean/goblin/dns"
+	"github.com/calvinmclean/goblin/server"
 
 	"github.com/urfave/cli/v2"
 )
@@ -26,7 +27,7 @@ var (
 			&cli.StringFlag{
 				Name:        "domain",
 				Aliases:     []string{"d"},
-				Value:       "gotest",
+				Value:       "goblin",
 				Usage:       "top-level domain name to use",
 				Destination: &topLevelDomain,
 			},

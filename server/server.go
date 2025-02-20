@@ -2,12 +2,13 @@ package server
 
 import (
 	"context"
-	"dns-plugin-thing/api/gen/pb_manager"
-	"dns-plugin-thing/dns"
 	"fmt"
 	"log"
 	"net"
 	"sync"
+
+	"github.com/calvinmclean/goblin/api/gen/pb_manager"
+	"github.com/calvinmclean/goblin/dns"
 
 	"google.golang.org/grpc"
 )
