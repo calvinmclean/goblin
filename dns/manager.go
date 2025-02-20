@@ -19,7 +19,7 @@ port %s`
 )
 
 type record struct {
-	ip        string
+	ip        net.IP
 	subdomain string
 	removedAt *time.Time
 }
@@ -134,7 +134,7 @@ func (m Manager) getIPs() (iter.Seq[net.IP], error) {
 	return func(yield func(net.IP) bool) {
 		for _, addr := range addrs {
 			ipNet, ok := addr.(*net.IPNet)
-			if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil {
+			if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil || ipNet.IP.IsUnspecified() {
 				continue
 			}
 
@@ -142,7 +142,7 @@ func (m Manager) getIPs() (iter.Seq[net.IP], error) {
 				continue
 			}
 
-			if !yield(ipNet.IP) {
+			if !yield(ipNet.IP.To4()) {
 				return
 			}
 		}
@@ -158,7 +158,7 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 		}
 
 		m.allocateIP(ctx, rec.ip, subdomain)
-		return rec.ip, nil
+		return rec.ip.String(), nil
 	}
 
 	ipIter, err := m.getIPs()
@@ -168,9 +168,7 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 
 	unallocatedIPs := []*record{}
 	for ip := range ipIter {
-		ipStr := ip.String()
-
-		rec := m.allocatedIPs[ipStr]
+		rec := m.allocatedIPs[ip.String()]
 		if rec != nil {
 			// add to unallocatedIPs if allocation is closed so it can be used as backup
 			if rec.removedAt != nil {
@@ -179,21 +177,21 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 			continue
 		}
 
-		m.allocateIP(ctx, ipStr, subdomain)
-		return ipStr, nil
+		m.allocateIP(ctx, ip, subdomain)
+		return ip.String(), nil
 	}
 
 	// if all unallocated IPs are exhausted, use the oldest removed IP
 	resultIP := findOldestDeallocatedIP(unallocatedIPs)
-	if resultIP != "" {
+	if resultIP != nil {
 		m.allocateIP(ctx, resultIP, subdomain)
-		return resultIP, nil
+		return resultIP.String(), nil
 	}
 
 	return "", ErrNoAvailableIPs
 }
 
-func findOldestDeallocatedIP(unallocatedIPs []*record) string {
+func findOldestDeallocatedIP(unallocatedIPs []*record) net.IP {
 	var resultIP *record
 	for i := range unallocatedIPs {
 		rec := unallocatedIPs[i]
@@ -209,16 +207,16 @@ func findOldestDeallocatedIP(unallocatedIPs []*record) string {
 	}
 
 	if resultIP == nil {
-		return ""
+		return nil
 	}
 
 	return resultIP.ip
 }
 
-func (m Manager) allocateIP(ctx context.Context, ip, subdomain string) {
+func (m Manager) allocateIP(ctx context.Context, ip net.IP, subdomain string) {
 	rec := &record{ip, subdomain, nil}
 
-	m.allocatedIPs[ip] = rec
+	m.allocatedIPs[ip.String()] = rec
 	m.subdomains[subdomain] = rec
 	go m.removeIP(ctx, rec)
 

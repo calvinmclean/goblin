@@ -71,14 +71,9 @@ func (m Manager) handleDNSRequest(conn net.PacketConn, clientAddr net.Addr, requ
 		// TODO: create reverse proxy if domain has a fallback/passthrough address
 		return fmt.Errorf("no record found for subdomain %q", subdomain)
 	}
-	m.logger.Debug("found ip for subdomain", "subdomain", subdomain, "ip", rec.ip)
+	m.logger.Debug("found ip for subdomain", "subdomain", subdomain, "ip", rec.ip.String())
 
-	ipBytes := ipToBytes(rec.ip)
-	if len(ipBytes) != 4 {
-		return fmt.Errorf("invalid IP address: %v", ipBytes)
-	}
-
-	response := m.createDNSResponse(request, ipBytes)
+	response := m.createDNSResponse(request, rec.ip)
 	if response == nil {
 		return errors.New("unexpected empty response")
 	}
