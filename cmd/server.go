@@ -3,6 +3,8 @@ package cmd
 import (
 	"dns-plugin-thing/dns"
 	"dns-plugin-thing/server"
+	"errors"
+	"fmt"
 	"log"
 	"log/slog"
 
@@ -11,23 +13,41 @@ import (
 
 const (
 	grpcServerAddr = "127.0.0.1:50051"
-	dnsServerAddr  = "127.0.0.1:5154"
-	dnsDomain      = ".gotest."
+	dnsServerAddr  = "127.0.0.1:5053"
 )
 
-var ServerCmd = &cli.Command{
-	Name:        "serve",
-	Description: "run server",
-	Action:      runServer,
-}
+var (
+	topLevelDomain string
+	ServerCmd      = &cli.Command{
+		Name:        "server",
+		Description: "run server",
+		Action:      runServer,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "domain",
+				Aliases:     []string{"d"},
+				Value:       "gotest",
+				Usage:       "top-level domain name to use",
+				Destination: &topLevelDomain,
+			},
+		},
+	}
+)
 
 func runServer(c *cli.Context) error {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
-	dnsMgr := dns.New(dnsDomain)
-	server := server.New(dnsMgr)
+	dnsMgr, err := dns.New(topLevelDomain, dnsServerAddr)
+	if err != nil {
+		var configErr dns.UserFixableError
+		if errors.As(err, &configErr) {
+			fmt.Println(configErr.Instructions)
+		}
+		return fmt.Errorf("error creating DNS Manager: %w", err)
+	}
 
-	err := server.Run(c.Context, grpcServerAddr, dnsServerAddr)
+	server := server.New(dnsMgr)
+	err = server.Run(c.Context, grpcServerAddr)
 	if err != nil {
 		log.Fatalf("error running GRPC server: %v", err)
 	}

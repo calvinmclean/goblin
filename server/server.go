@@ -24,7 +24,7 @@ func New(mgr dns.Manager) Server {
 	}
 }
 
-func (s Server) Run(ctx context.Context, grpcAddr, dnsAddr string) error {
+func (s Server) Run(ctx context.Context, grpcAddr string) error {
 	listener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		return fmt.Errorf("failed to create Listener: %w", err)
@@ -51,7 +51,7 @@ func (s Server) Run(ctx context.Context, grpcAddr, dnsAddr string) error {
 	}()
 
 	go func() {
-		err = s.mgr.RunDNS(ctx, dnsAddr)
+		err = s.mgr.RunDNS(ctx)
 		if err != nil {
 			log.Fatalf("failed to serve: %v", err)
 		}

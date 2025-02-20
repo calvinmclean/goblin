@@ -3,17 +3,19 @@ package dns
 import (
 	"context"
 	"errors"
+	"fmt"
+	"iter"
 	"log/slog"
 	"net"
+	"os"
 	"strings"
 	"time"
 )
 
-const subnet = "10.0.0."
-
-var (
-	ErrNoAvailableIPs = errors.New("no available IPs")
-	ErrSubdomainInUse = errors.New("subdomain already in-use")
+const (
+	subnet          = "10.0.0."
+	resolverFileFmt = `nameserver %s
+port %s`
 )
 
 type record struct {
@@ -27,17 +29,115 @@ type Manager struct {
 	allocatedIPs map[string]*record
 	subdomains   map[string]*record
 
-	domain string
+	dnsAddr string
+	domain  string
+
 	logger *slog.Logger
 }
 
-func New(domain string) Manager {
+func New(domain, dnsAddr string) (Manager, error) {
+	err := checkResolverFile(domain, dnsAddr)
+	if err != nil {
+		return Manager{}, err
+	}
+
+	numIPs, err := checkIPAliases()
+	if err != nil {
+		return Manager{}, err
+	}
+
+	logger := slog.Default()
+	logger.Info("found IP aliases", "count", numIPs)
+
 	return Manager{
 		allocatedIPs: map[string]*record{},
 		subdomains:   map[string]*record{},
-		domain:       domain,
-		logger:       slog.Default(),
+		dnsAddr:      dnsAddr,
+		domain:       fmt.Sprintf(".%s.", domain),
+		logger:       logger,
+	}, nil
+}
+
+func checkIPAliases() (int, error) {
+	ipIter, err := getIPs()
+	if err != nil {
+		return 0, err
 	}
+
+	count := 0
+	for range ipIter {
+		count++
+	}
+
+	if count == 0 {
+		return 0, NewUserFixableError(errors.New("no IP aliases configured"), ipAliasInstruction)
+	}
+
+	return count, nil
+}
+
+func checkResolverFile(domain, dnsAddr string) error {
+	addrParts := strings.Split(dnsAddr, ":")
+	if len(addrParts) != 2 {
+		return errors.New("unexpected format for address")
+	}
+
+	addr := addrParts[0]
+	port := addrParts[1]
+	if addr == "" {
+		addr = "127.0.0.1"
+	}
+
+	expected := fmt.Sprintf(resolverFileFmt, addr, port)
+
+	fname := fmt.Sprintf("/etc/resolver/%s", domain)
+	contents, err := os.ReadFile(fname)
+	if err != nil {
+		return NewUserFixableError(
+			fmt.Errorf("error reading resolver file: %w", err),
+			resolverFileInstructions(fname, expected),
+		)
+	}
+
+	if strings.TrimSpace(string(contents)) != expected {
+		return NewUserFixableError(
+			errors.New("unexpected contents of resolver file"),
+			resolverFileInstructions(fname, expected),
+		)
+	}
+
+	return nil
+}
+
+// getIPs iterates through IPs in the subnet
+func getIPs() (iter.Seq[string], error) {
+	iface, err := net.InterfaceByName("lo0")
+	if err != nil {
+		return nil, err
+	}
+
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return nil, err
+	}
+
+	return func(yield func(string) bool) {
+		for _, addr := range addrs {
+			ipNet, ok := addr.(*net.IPNet)
+			if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil {
+				continue
+			}
+
+			ip := ipNet.IP.String()
+			if !strings.HasPrefix(ip, subnet) {
+				continue
+			}
+
+			if !yield(ip) {
+				return
+			}
+		}
+	}, nil
 }
 
 func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
@@ -109,6 +209,10 @@ func findOldestDeallocatedIP(unallocatedIPs []*record) string {
 		if rec.removedAt.Before(*resultIP.removedAt) {
 			resultIP = rec
 		}
+	}
+
+	if resultIP == nil {
+		return ""
 	}
 
 	return resultIP.ip

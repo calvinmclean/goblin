@@ -10,10 +10,10 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (m Manager) RunDNS(ctx context.Context, addr string) error {
+func (m Manager) RunDNS(ctx context.Context) error {
 	dns.HandleFunc(".", m.handleDNSRequest)
 	server := &dns.Server{
-		Addr: addr,
+		Addr: m.dnsAddr,
 		Net:  "udp",
 	}
 	m.logger.Info("starting local DNS server", "addr", server.Addr)
