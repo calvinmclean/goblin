@@ -3,7 +3,9 @@ version: "3"
 tasks:
   build-plugins:
     desc: Build example plugins
-    dir: ./plugins/examples
+    dir: ./example-plugins
     cmds:
-      - go build -buildmode=plugin -o ./hello-world.so ./hello-world.go
-      - go build -buildmode=plugin -o ./howdy-world.so ./howdy-world.go
+      - cd grpc && go build -buildmode=plugin
+      - cd helloworld/cmd/hello && go build -buildmode=plugin
+      - cd helloworld/cmd/howdy && go build -buildmode=plugin
+      - cd todo-api && go build -buildmode=plugin

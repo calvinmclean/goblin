@@ -26,7 +26,7 @@ func runExample(c *cli.Context) error {
 	}
 
 	go func() {
-		err := runPlugin(c.Context, dnsMgr, "./plugins/examples/hello-world.so", "helloworld", 0)
+		err := runPlugin(c.Context, dnsMgr, "./example-plugins/helloworld/cmd/hello/hello.so", "helloworld", 0)
 		if err != nil {
 			panic(err)
 		}
@@ -35,7 +35,7 @@ func runExample(c *cli.Context) error {
 	go func() {
 		time.Sleep(5 * time.Second)
 
-		err := runPlugin(c.Context, dnsMgr, "./plugins/examples/howdy-world.so", "howdy", 0)
+		err := runPlugin(c.Context, dnsMgr, "./example-plugins/helloworld/cmd/hello/howdy.so", "howdy", 0)
 		if err != nil {
 			panic(err)
 		}
@@ -44,7 +44,7 @@ func runExample(c *cli.Context) error {
 	go func() {
 		time.Sleep(15 * time.Second)
 
-		err := runPlugin(c.Context, dnsMgr, "./plugins/examples/howdy-world.so", "howdynew", 0)
+		err := runPlugin(c.Context, dnsMgr, "./example-plugins/helloworld/cmd/hello/howdy.so", "howdynew", 0)
 		if err != nil {
 			panic(err)
 		}

@@ -49,14 +49,13 @@ This requires a few system-level changes before it can be used. Eventually the s
     ```shell
     task build-plugins
     # OR
-    cd plugins/examples
-    go build -buildmode=plugin -o ./hello-world.so ./hello-world.go
-    go build -buildmode=plugin -o ./howdy-world.so ./howdy-world.go
+    cd ./example-plugins/helloworld/cmd/hello && go build -buildmode=plugin
+    cd ./example-plugins/helloworld/cmd/howdy && go build -buildmode=plugin
     ```
 
 1. Run the plugin wrapper:
     ```shell
-    go run cmd/dns-plugin-thing/main.go plugin -f ./plugins/examples/hello-world.so -d hello
+    go run cmd/dns-plugin-thing/main.go plugin -f ./example-plugins/helloworld/cmd/hello/hello.so -d hello
     ```
 
 1. Use `curl` to make a request to the application using the registered domain name
@@ -64,7 +63,7 @@ This requires a few system-level changes before it can be used. Eventually the s
     curl hello.gotest:8080
     ```
 
-1. Repeat the last 2 steps with different subdomains!
+1. Repeat the last 2 steps with different subdomains and/or modules!
 
 
 ## About plugins
