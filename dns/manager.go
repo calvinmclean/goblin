@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	// TODO: use real CIDR notation for IP matching
-	subnet          = "10.0.0."
+	defaultSubnet   = "10.0.0.0/8"
 	resolverFileFmt = `nameserver %s
 port %s`
 )
@@ -32,35 +31,44 @@ type Manager struct {
 
 	addr   string
 	domain string
+	subnet *net.IPNet
 
 	logger *slog.Logger
 }
 
 func New(domain, dnsAddr string) (Manager, error) {
-	err := checkResolverFile(domain, dnsAddr)
+	_, subnet, err := net.ParseCIDR(defaultSubnet)
 	if err != nil {
-		return Manager{}, err
+		return Manager{}, fmt.Errorf("error parsing subnet: %w", err)
 	}
 
-	numIPs, err := checkIPAliases()
-	if err != nil {
-		return Manager{}, err
-	}
-
-	logger := slog.Default()
-	logger.Info("found IP aliases", "count", numIPs)
-
-	return Manager{
+	manager := Manager{
 		allocatedIPs: map[string]*record{},
 		subdomains:   map[string]*record{},
 		addr:         dnsAddr,
+		subnet:       subnet,
 		domain:       domain,
-		logger:       logger,
-	}, nil
+		logger:       slog.Default(),
+	}
+
+	err = checkResolverFile(domain, dnsAddr)
+	if err != nil {
+		return Manager{}, err
+	}
+
+	numIPs, err := manager.checkIPAliases()
+	if err != nil {
+		return Manager{}, err
+	}
+
+	manager.logger.Info("found IP aliases", "count", numIPs)
+
+	return manager, nil
 }
 
-func checkIPAliases() (int, error) {
-	ipIter, err := getIPs()
+// ensure IP aliases exist in the system
+func (m Manager) checkIPAliases() (int, error) {
+	ipIter, err := m.getIPs()
 	if err != nil {
 		return 0, err
 	}
@@ -77,6 +85,7 @@ func checkIPAliases() (int, error) {
 	return count, nil
 }
 
+// ensure correct resolver config exists on the system
 func checkResolverFile(domain, dnsAddr string) error {
 	addrParts := strings.Split(dnsAddr, ":")
 	if len(addrParts) != 2 {
@@ -111,7 +120,7 @@ func checkResolverFile(domain, dnsAddr string) error {
 }
 
 // getIPs iterates through IPs in the subnet
-func getIPs() (iter.Seq[string], error) {
+func (m Manager) getIPs() (iter.Seq[net.IP], error) {
 	iface, err := net.InterfaceByName("lo0")
 	if err != nil {
 		return nil, err
@@ -122,19 +131,18 @@ func getIPs() (iter.Seq[string], error) {
 		return nil, err
 	}
 
-	return func(yield func(string) bool) {
+	return func(yield func(net.IP) bool) {
 		for _, addr := range addrs {
 			ipNet, ok := addr.(*net.IPNet)
 			if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil {
 				continue
 			}
 
-			ip := ipNet.IP.String()
-			if !strings.HasPrefix(ip, subnet) {
+			if !m.subnet.Contains(ipNet.IP) {
 				continue
 			}
 
-			if !yield(ip) {
+			if !yield(ipNet.IP) {
 				return
 			}
 		}
@@ -153,29 +161,16 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 		return rec.ip, nil
 	}
 
-	iface, err := net.InterfaceByName("lo0")
+	ipIter, err := m.getIPs()
 	if err != nil {
-		return "", err
-	}
-
-	addrs, err := iface.Addrs()
-	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error getting IPs from system: %w", err)
 	}
 
 	unallocatedIPs := []*record{}
-	for _, addr := range addrs {
-		ipNet, ok := addr.(*net.IPNet)
-		if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil {
-			continue
-		}
+	for ip := range ipIter {
+		ipStr := ip.String()
 
-		ip := ipNet.IP.String()
-		if !strings.HasPrefix(ip, subnet) {
-			continue
-		}
-
-		rec := m.allocatedIPs[ip]
+		rec := m.allocatedIPs[ipStr]
 		if rec != nil {
 			// add to unallocatedIPs if allocation is closed so it can be used as backup
 			if rec.removedAt != nil {
@@ -184,8 +179,8 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 			continue
 		}
 
-		m.allocateIP(ctx, ip, subdomain)
-		return ip, nil
+		m.allocateIP(ctx, ipStr, subdomain)
+		return ipStr, nil
 	}
 
 	// if all unallocated IPs are exhausted, use the oldest removed IP
