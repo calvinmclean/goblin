@@ -1,51 +1,41 @@
 package dns
 
 import (
+	"bufio"
 	"context"
 	"fmt"
-
-	"github.com/calvinmclean/goblin/api/gen/pb_manager"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"net/http"
+	"strings"
 )
 
+// Client is used to get IPs from the server over HTTP
 type Client struct {
 	addr string
 }
 
-func NewGRPC(addr string) (Client, error) {
+func NewHTTPClient(addr string) (Client, error) {
 	return Client{addr}, nil
 }
 
 func (c Client) GetIP(ctx context.Context, subdomain string) (string, error) {
-	conn, err := grpc.NewClient(c.addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	resp, err := http.Post("http://"+c.addr+"/allocate?subdomain="+subdomain, "", http.NoBody)
 	if err != nil {
-		return "", fmt.Errorf("failed to connect: %w", err)
+		return "", fmt.Errorf("failed to send request to server: %w", err)
 	}
 
-	client := pb_manager.NewManagerClient(conn)
-	stream, err := client.GetIP(ctx, &pb_manager.GetIPRequest{
-		Subdomain: subdomain,
-	})
+	ip, err := bufio.NewReader(resp.Body).ReadString('\n')
 	if err != nil {
-		_ = conn.Close()
-		return "", fmt.Errorf("failed to GetIP: %w", err)
+		return "", fmt.Errorf("failed to read request body: %w", err)
 	}
 
-	// keep the connection open until the context is closed
+	// keep the connection open until the context is done
 	go func() {
 		select {
-		case <-stream.Context().Done():
 		case <-ctx.Done():
+			resp.Body.Close()
+			return
 		}
-		_ = conn.Close()
 	}()
 
-	resp, err := stream.Recv()
-	if err != nil {
-		return "", fmt.Errorf("failed to receive message: %w", err)
-	}
-
-	return resp.IpAddress, nil
+	return strings.TrimSpace(ip), nil
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -9,12 +10,12 @@ import (
 	"github.com/calvinmclean/goblin/dns"
 	"github.com/calvinmclean/goblin/server"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 const (
-	grpcServerAddr = "127.0.0.1:50051"
-	dnsServerAddr  = "127.0.0.1:5053"
+	serverAddr    = "127.0.0.1:8080"
+	dnsServerAddr = "127.0.0.1:5053"
 )
 
 var (
@@ -35,7 +36,7 @@ var (
 	}
 )
 
-func runServer(c *cli.Context) error {
+func runServer(ctx context.Context, c *cli.Command) error {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
 	dnsMgr, err := dns.New(topLevelDomain, dnsServerAddr)
@@ -47,8 +48,8 @@ func runServer(c *cli.Context) error {
 		return fmt.Errorf("error creating DNS Manager: %w", err)
 	}
 
-	server := server.New(dnsMgr)
-	err = server.Run(c.Context, grpcServerAddr)
+	server := server.New(dnsMgr, serverAddr)
+	err = server.Run(ctx)
 	if err != nil {
 		log.Fatalf("error running GRPC server: %v", err)
 	}

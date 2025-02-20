@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/calvinmclean/goblin/dns"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var ClientCmd = &cli.Command{
@@ -17,11 +16,8 @@ var ClientCmd = &cli.Command{
 	Action:      runClient,
 }
 
-func runClient(c *cli.Context) error {
-	ctx, cancel := context.WithTimeout(c.Context, 5*time.Second)
-	defer cancel()
-
-	client, err := dns.NewGRPC(grpcServerAddr)
+func runClient(ctx context.Context, c *cli.Command) error {
+	client, err := dns.NewHTTPClient(serverAddr)
 	if err != nil {
 		return fmt.Errorf("error creating client: %w", err)
 	}
@@ -37,7 +33,7 @@ func runClient(c *cli.Context) error {
 	}
 	log.Printf("Got IP: %s", ip)
 
-	<-c.Context.Done()
+	<-ctx.Done()
 
 	return err
 }

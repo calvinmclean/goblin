@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	// TODO: use real CIDR notation for IP matching
 	subnet          = "10.0.0."
 	resolverFileFmt = `nameserver %s
 port %s`
@@ -29,8 +30,8 @@ type Manager struct {
 	allocatedIPs map[string]*record
 	subdomains   map[string]*record
 
-	dnsAddr string
-	domain  string
+	addr   string
+	domain string
 
 	logger *slog.Logger
 }
@@ -52,8 +53,8 @@ func New(domain, dnsAddr string) (Manager, error) {
 	return Manager{
 		allocatedIPs: map[string]*record{},
 		subdomains:   map[string]*record{},
-		dnsAddr:      dnsAddr,
-		domain:       fmt.Sprintf(".%s.", domain),
+		addr:         dnsAddr,
+		domain:       domain,
 		logger:       logger,
 	}, nil
 }
@@ -140,6 +141,7 @@ func getIPs() (iter.Seq[string], error) {
 	}, nil
 }
 
+// GetIP allocates and returns an IP address. It will keep it open until the context is closed
 func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 	rec := m.subdomains[subdomain]
 	if rec != nil {

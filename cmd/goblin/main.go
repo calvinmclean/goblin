@@ -1,16 +1,17 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
 	"github.com/calvinmclean/goblin/cmd"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 func main() {
-	app := &cli.App{
+	app := &cli.Command{
 		Name: "goblin",
 		Commands: []*cli.Command{
 			cmd.ClientCmd,
@@ -20,7 +21,7 @@ func main() {
 		},
 	}
 
-	err := app.Run(os.Args)
+	err := app.Run(context.Background(), os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}

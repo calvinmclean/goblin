@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"log/slog"
@@ -9,7 +10,7 @@ import (
 	"github.com/calvinmclean/goblin/dns"
 	"github.com/calvinmclean/goblin/server"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var ExampleCmd = &cli.Command{
@@ -18,7 +19,7 @@ var ExampleCmd = &cli.Command{
 	Action:      runExample,
 }
 
-func runExample(c *cli.Context) error {
+func runExample(ctx context.Context, c *cli.Command) error {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
 	dnsMgr, err := dns.New("goblin", dnsServerAddr)
@@ -27,7 +28,7 @@ func runExample(c *cli.Context) error {
 	}
 
 	go func() {
-		err := runPlugin(c.Context, dnsMgr, "./example-plugins/helloworld/cmd/hello/hello.so", "helloworld", 0)
+		err := runPlugin(ctx, dnsMgr, "./example-plugins/helloworld/cmd/hello/hello.so", "helloworld", 0)
 		if err != nil {
 			panic(err)
 		}
@@ -36,7 +37,7 @@ func runExample(c *cli.Context) error {
 	go func() {
 		time.Sleep(5 * time.Second)
 
-		err := runPlugin(c.Context, dnsMgr, "./example-plugins/helloworld/cmd/hello/howdy.so", "howdy", 0)
+		err := runPlugin(ctx, dnsMgr, "./example-plugins/helloworld/cmd/hello/howdy.so", "howdy", 0)
 		if err != nil {
 			panic(err)
 		}
@@ -45,14 +46,14 @@ func runExample(c *cli.Context) error {
 	go func() {
 		time.Sleep(15 * time.Second)
 
-		err := runPlugin(c.Context, dnsMgr, "./example-plugins/helloworld/cmd/hello/howdy.so", "howdynew", 0)
+		err := runPlugin(ctx, dnsMgr, "./example-plugins/helloworld/cmd/hello/howdy.so", "howdynew", 0)
 		if err != nil {
 			panic(err)
 		}
 	}()
 
-	server := server.New(dnsMgr)
-	err = server.Run(c.Context, grpcServerAddr)
+	server := server.New(dnsMgr, serverAddr)
+	err = server.Run(ctx)
 	if err != nil {
 		log.Fatalf("error running GRPC server: %v", err)
 	}

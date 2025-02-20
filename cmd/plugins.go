@@ -9,7 +9,7 @@ import (
 	"github.com/calvinmclean/goblin/dns"
 	"github.com/calvinmclean/goblin/plugins"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -38,12 +38,12 @@ var (
 	}
 )
 
-func runPluginCmd(c *cli.Context) error {
-	client, err := dns.NewGRPC(grpcServerAddr)
+func runPluginCmd(ctx context.Context, c *cli.Command) error {
+	client, err := dns.NewHTTPClient(serverAddr)
 	if err != nil {
 		return fmt.Errorf("error creating GRPC Client: %w", err)
 	}
-	return runPlugin(c.Context, client, filename, subdomain, 0)
+	return runPlugin(ctx, client, filename, subdomain, 0)
 }
 
 func runPlugin(ctx context.Context, dnsMgr plugins.IPGetter, fname, subdomain string, timeout time.Duration) error {
