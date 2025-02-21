@@ -67,9 +67,16 @@ func (m Manager) handleDNSRequest(conn net.PacketConn, clientAddr net.Addr, requ
 	subdomain := getSubdomain(domain)
 
 	rec, ok := m.subdomains[subdomain]
-	if !ok || rec.removedAt != nil {
-		// TODO: create reverse proxy if domain has a fallback/passthrough address
-		return fmt.Errorf("no record found for subdomain %q", subdomain)
+	if !ok || !rec.isActive() {
+		// if a domain is not registered or is registered but un-allocated, spin up a reverse proxy
+		var err error
+		rec, err = m.handleFallbackRoutes(subdomain)
+		if err != nil {
+			return fmt.Errorf("error running reverse proxy: %w", err)
+		}
+		if rec == nil {
+			return fmt.Errorf("no record found for subdomain %q", subdomain)
+		}
 	}
 	m.logger.Debug("found ip for subdomain", "subdomain", subdomain, "ip", rec.ip.String())
 

@@ -1,0 +1,10 @@
+{
+  "fallback": {
+    "Hostname": "http://localhost",
+    "Ports": [8081]
+  },
+  "jsonplaceholder": {
+    "Hostname": "http://jsonplaceholder.typicode.com",
+    "Ports": [80]
+  }
+}

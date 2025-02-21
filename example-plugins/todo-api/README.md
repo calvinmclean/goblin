@@ -7,7 +7,7 @@ cd ./example-plugins/todo-api
 go build -buildmode=plugin
 
 cd -
-go run cmd/goblin/main.go plugin -f ./example-plugins/todo-api/todo-api.so -d todo
+go run main.go plugin -f ./example-plugins/todo-api/todo-api.so -d todo
 ```
 
 Then access with API with `curl` or `go run`:

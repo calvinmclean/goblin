@@ -10,16 +10,28 @@ This consists of two main parts:
 
 1. Goblin server (runs in the background)
     - This provides a DNS server for handling DNS resolution for your applications
-    - It also runs a GRPC service that allows an application to request an IP and register a subdomain
+    - It also runs an HTTP server that allows an application to request an IP and register a subdomain
 
 2. Goblin plugin runner
-    - This component wraps a compiled Go plugin (`*.so` file). It handles the GRPC request to get an allocated IP and register the subdomain
+    - This component wraps a compiled Go plugin (`*.so` file). It handles the HTTP request to get an allocated IP and register the subdomain
     - This part is not strictly necessary since an application can be implemented to request an IP on its own. This method allows user applications to exist without any imports or specific handling related to domains and IPs
+
+
+## Install
+
+```shell
+go install github.com/calvinmclean/goblin@latest
+```
 
 
 ## Getting started
 
 Goblin requires a few system-level changes before it can be used. Eventually the server will handle these steps on its own if it's run with `sudo`, but for now it is manual setup since things generally should not run with `sudo`.
+
+1. Install
+    ```shell
+    go install github.com/calvinmclean/goblin@latest
+    ```
 
 1. Create a custom top-level domain resolver setting at `/etc/resolver/{domain}` (The application's default is `goblin`)
     ```
@@ -45,11 +57,15 @@ Goblin requires a few system-level changes before it can be used. Eventually the
 
 1. Run the server
     ```shell
-    go run cmd/goblin/main.go server
+    goblin server
     ```
 
 1. Implement `Run(ctx context.Context, ipAddress string) error` in your application's `main` package and compile with `go build -buildmode=plugin` (or build the existing examples in this repository)
     ```shell
+    # clone repo for examples
+    git clone https://github.com/calvinmclean/goblin.git
+    cd goblin
+
     task build-plugins
     # OR
     cd ./example-plugins/helloworld/cmd/hello && go build -buildmode=plugin
@@ -58,7 +74,9 @@ Goblin requires a few system-level changes before it can be used. Eventually the
 
 1. Run the plugin wrapper:
     ```shell
-    go run cmd/goblin/main.go plugin -f ./example-plugins/helloworld/cmd/hello/hello.so -d hello
+    goblin plugin \
+      -f ./example-plugins/helloworld/cmd/hello/hello.so \
+      -d hello
     ```
 
 1. Use `curl` to make a request to the application using the registered domain name
@@ -67,6 +85,15 @@ Goblin requires a few system-level changes before it can be used. Eventually the
     ```
 
 1. Repeat the last 2 steps with different subdomains and/or modules!
+
+
+## Fallback Routes
+
+When `FallbackRoutes` are configured, Goblin will automatically proxy requests to a remote (or local) destination if there is no local Goblin plugin running with the requested subdomain.
+
+This is useful for microservices development because Goblin can automatically detect if your dependent service is running locally (as a Goblin plugin) and route to a development cloud environment if it's not.
+
+See [`example-fallback-routes.json`](./example-fallback-routes.json) for an example of how this is configured. Pass your routes filename to `goblin server` with `--fallback-routes` or `-r`.
 
 
 ## About plugins

@@ -22,6 +22,7 @@ type record struct {
 	ip        net.IP
 	subdomain string
 	removedAt *time.Time
+	stop      func() error
 }
 
 func (r *record) isActive() bool {
@@ -33,26 +34,28 @@ type Manager struct {
 	allocatedIPs map[string]*record
 	subdomains   map[string]*record
 
-	addr   string
-	domain string
-	subnet *net.IPNet
+	addr           string
+	domain         string
+	subnet         *net.IPNet
+	fallbackRoutes FallbackRoutes
 
 	logger *slog.Logger
 }
 
-func New(domain, dnsAddr string) (Manager, error) {
+func New(domain, dnsAddr string, fallbackRoutes FallbackRoutes) (Manager, error) {
 	_, subnet, err := net.ParseCIDR(defaultSubnet)
 	if err != nil {
 		return Manager{}, fmt.Errorf("error parsing subnet: %w", err)
 	}
 
 	manager := Manager{
-		allocatedIPs: map[string]*record{},
-		subdomains:   map[string]*record{},
-		addr:         dnsAddr,
-		subnet:       subnet,
-		domain:       domain,
-		logger:       slog.Default(),
+		allocatedIPs:   map[string]*record{},
+		subdomains:     map[string]*record{},
+		addr:           dnsAddr,
+		subnet:         subnet,
+		domain:         domain,
+		fallbackRoutes: fallbackRoutes,
+		logger:         slog.Default(),
 	}
 
 	err = checkResolverFile(domain, dnsAddr)
@@ -159,7 +162,7 @@ func (m Manager) getExistingRecord(subdomain string) (*record, error) {
 		return nil, nil
 	}
 
-	if rec.isActive() {
+	if rec.isActive() && rec.stop == nil {
 		return nil, ErrSubdomainInUse
 	}
 
@@ -193,7 +196,7 @@ func (m Manager) getNextAvailableIP() (net.IP, []net.IP, error) {
 func (m Manager) findOrCreateRecord(subdomain string) (*record, error) {
 	rec, err := m.getExistingRecord(subdomain)
 	if err != nil {
-		return nil, ErrSubdomainInUse
+		return nil, err
 	}
 	if rec != nil {
 		return rec, nil
@@ -204,7 +207,7 @@ func (m Manager) findOrCreateRecord(subdomain string) (*record, error) {
 		return nil, err
 	}
 	if ip != nil {
-		return &record{ip, subdomain, nil}, nil
+		return &record{ip, subdomain, nil, nil}, nil
 	}
 
 	// if all unallocated IPs are exhausted, use the oldest removed IP
@@ -221,6 +224,14 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 	rec, err := m.findOrCreateRecord(subdomain)
 	if err != nil {
 		return "", err
+	}
+	// if a reverse proxy is running, stop it since it will be replaced by plugin
+	if rec.stop != nil {
+		err = rec.stop()
+		if err != nil {
+			m.logger.Error("error stopping reverse proxy", "ip", rec.ip.String(), "error", err)
+		}
+		rec.stop = nil
 	}
 
 	m.allocateIPRecord(ctx, rec)

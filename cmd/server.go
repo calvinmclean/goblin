@@ -2,10 +2,13 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
+	"strings"
 
 	"github.com/calvinmclean/goblin/dns"
 	"github.com/calvinmclean/goblin/server"
@@ -19,8 +22,8 @@ const (
 )
 
 var (
-	topLevelDomain string
-	ServerCmd      = &cli.Command{
+	topLevelDomain, fallbackConfig string
+	ServerCmd                      = &cli.Command{
 		Name:        "server",
 		Description: "run server",
 		Action:      runServer,
@@ -32,6 +35,25 @@ var (
 				Usage:       "top-level domain name to use",
 				Destination: &topLevelDomain,
 			},
+			&cli.StringFlag{
+				Name:      "fallback-routes",
+				Aliases:   []string{"r"},
+				TakesFile: true,
+				Validator: func(v string) error {
+					if !strings.HasSuffix(v, ".json") {
+						return errors.New("fallback-routes must be JSON file")
+					}
+					return nil
+				},
+				Usage: `path to a JSON file holding fallback route config in this format:
+{
+  "subdomain": {
+    "Hostname": "remote-server.mydomain",
+    "Ports": [8080]
+  }
+}`,
+				Destination: &fallbackConfig,
+			},
 		},
 	}
 )
@@ -39,7 +61,20 @@ var (
 func runServer(ctx context.Context, c *cli.Command) error {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
-	dnsMgr, err := dns.New(topLevelDomain, dnsServerAddr)
+	var fallbackRoutes dns.FallbackRoutes
+	if fallbackConfig != "" {
+		data, err := os.ReadFile(fallbackConfig)
+		if err != nil {
+			return fmt.Errorf("error opening fallback routes config: %w", err)
+		}
+
+		err = json.Unmarshal(data, &fallbackRoutes)
+		if err != nil {
+			return fmt.Errorf("error parsing fallback routes config: %w", err)
+		}
+	}
+
+	dnsMgr, err := dns.New(topLevelDomain, dnsServerAddr, fallbackRoutes)
 	if err != nil {
 		var configErr dns.UserFixableError
 		if errors.As(err, &configErr) {

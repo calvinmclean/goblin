@@ -8,3 +8,4 @@ tasks:
       - cd helloworld/cmd/hello && go build -buildmode=plugin
       - cd helloworld/cmd/howdy && go build -buildmode=plugin
       - cd todo-api && go build -buildmode=plugin
+      - cd fallback && go build -buildmode=plugin
