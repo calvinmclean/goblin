@@ -27,6 +27,11 @@ func (c Client) GetIP(ctx context.Context, subdomain string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to read request body: %w", err)
 	}
+	ip = strings.TrimSpace(ip)
+
+	if ip == "server error" {
+		return "", fmt.Errorf("failed to get IP: %s", ip)
+	}
 
 	// keep the connection open until the context is done
 	go func() {
@@ -37,5 +42,5 @@ func (c Client) GetIP(ctx context.Context, subdomain string) (string, error) {
 		}
 	}()
 
-	return strings.TrimSpace(ip), nil
+	return ip, nil
 }

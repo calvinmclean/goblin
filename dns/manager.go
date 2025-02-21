@@ -24,6 +24,10 @@ type record struct {
 	removedAt *time.Time
 }
 
+func (r *record) isActive() bool {
+	return r.removedAt == nil
+}
+
 type Manager struct {
 	// allocatedIPs and subdomains point to the same data but with IP or Subdomain as the key
 	allocatedIPs map[string]*record
@@ -149,78 +153,109 @@ func (m Manager) getIPs() (iter.Seq[net.IP], error) {
 	}, nil
 }
 
-// GetIP allocates and returns an IP address. It will keep it open until the context is closed
-func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
+func (m Manager) getExistingRecord(subdomain string) (*record, error) {
 	rec := m.subdomains[subdomain]
-	if rec != nil {
-		if rec.removedAt == nil {
-			return "", ErrSubdomainInUse
-		}
-
-		m.allocateIP(ctx, rec.ip, subdomain)
-		return rec.ip.String(), nil
+	if rec == nil {
+		return nil, nil
 	}
 
+	if rec.isActive() {
+		return nil, ErrSubdomainInUse
+	}
+
+	return rec, nil
+}
+
+func (m Manager) getNextAvailableIP() (net.IP, []net.IP, error) {
 	ipIter, err := m.getIPs()
 	if err != nil {
-		return "", fmt.Errorf("error getting IPs from system: %w", err)
+		return nil, nil, fmt.Errorf("error getting IPs from system: %w", err)
 	}
 
-	unallocatedIPs := []*record{}
+	unallocatedIPs := []net.IP{}
 	for ip := range ipIter {
 		rec := m.allocatedIPs[ip.String()]
-		if rec != nil {
-			// add to unallocatedIPs if allocation is closed so it can be used as backup
-			if rec.removedAt != nil {
-				unallocatedIPs = append(unallocatedIPs, rec)
-			}
-			continue
+		// IP is not currently in-use so it can be used
+		if rec == nil {
+			return ip, nil, nil
 		}
 
-		m.allocateIP(ctx, ip, subdomain)
-		return ip.String(), nil
+		// add to unallocatedRECs if allocation is closed so it can be used as backup
+		if !rec.isActive() {
+			// if !rec.isActive() {
+			unallocatedIPs = append(unallocatedIPs, rec.ip)
+		}
+	}
+
+	return nil, unallocatedIPs, nil
+}
+
+func (m Manager) findOrCreateRecord(subdomain string) (*record, error) {
+	rec, err := m.getExistingRecord(subdomain)
+	if err != nil {
+		return nil, ErrSubdomainInUse
+	}
+	if rec != nil {
+		return rec, nil
+	}
+
+	ip, unallocatedIPs, err := m.getNextAvailableIP()
+	if err != nil {
+		return nil, err
+	}
+	if ip != nil {
+		return &record{ip, subdomain, nil}, nil
 	}
 
 	// if all unallocated IPs are exhausted, use the oldest removed IP
-	resultIP := findOldestDeallocatedIP(unallocatedIPs)
-	if resultIP != nil {
-		m.allocateIP(ctx, resultIP, subdomain)
-		return resultIP.String(), nil
+	rec = m.findOldestDeallocatedIP(unallocatedIPs)
+	if rec != nil {
+		return rec, nil
 	}
 
-	return "", ErrNoAvailableIPs
+	return nil, ErrNoAvailableIPs
 }
 
-func findOldestDeallocatedIP(unallocatedIPs []*record) net.IP {
-	var resultIP *record
-	for i := range unallocatedIPs {
-		rec := unallocatedIPs[i]
+// GetIP allocates and returns an IP address. It will keep it open until the context is closed
+func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
+	rec, err := m.findOrCreateRecord(subdomain)
+	if err != nil {
+		return "", err
+	}
 
-		if resultIP == nil {
-			resultIP = rec
+	m.allocateIPRecord(ctx, rec)
+	return rec.ip.String(), nil
+}
+
+// find the oldest in a list of records that were de-allocated
+func (m Manager) findOldestDeallocatedIP(unallocatedIPs []net.IP) *record {
+	var result *record
+	for _, ip := range unallocatedIPs {
+		rec := m.allocatedIPs[ip.String()]
+
+		if result == nil {
+			result = rec
 			continue
 		}
 
-		if rec.removedAt.Before(*resultIP.removedAt) {
-			resultIP = rec
+		if rec.removedAt.Before(*result.removedAt) {
+			result = rec
 		}
 	}
 
-	if resultIP == nil {
+	if result == nil {
 		return nil
 	}
 
-	return resultIP.ip
+	return result
 }
 
-func (m Manager) allocateIP(ctx context.Context, ip net.IP, subdomain string) {
-	rec := &record{ip, subdomain, nil}
-
-	m.allocatedIPs[ip.String()] = rec
-	m.subdomains[subdomain] = rec
+func (m Manager) allocateIPRecord(ctx context.Context, rec *record) {
+	m.allocatedIPs[rec.ip.String()] = rec
+	m.subdomains[rec.subdomain] = rec
 	go m.removeIP(ctx, rec)
 
-	m.logger.Debug("allocated IP", "ip", ip, "subdomain", subdomain)
+	m.logger.Debug("allocated IP", "ip", rec.ip, "subdomain", rec.subdomain)
 }
 
 func (m Manager) removeIP(ctx context.Context, rec *record) {

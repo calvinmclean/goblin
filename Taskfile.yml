@@ -5,7 +5,6 @@ tasks:
     desc: Build example plugins
     dir: ./example-plugins
     cmds:
-      - cd grpc && go build -buildmode=plugin
       - cd helloworld/cmd/hello && go build -buildmode=plugin
       - cd helloworld/cmd/howdy && go build -buildmode=plugin
       - cd todo-api && go build -buildmode=plugin
