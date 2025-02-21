@@ -75,7 +75,7 @@ Goblin requires a few system-level changes before it can be used. Eventually the
 1. Run the plugin wrapper:
     ```shell
     goblin plugin \
-      -f ./example-plugins/helloworld/cmd/hello/hello.so \
+      -p ./example-plugins/helloworld/cmd/hello/hello.so \
       -d hello
     ```
 

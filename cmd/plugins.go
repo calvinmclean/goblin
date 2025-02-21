@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/calvinmclean/goblin/dns"
@@ -20,18 +23,24 @@ var (
 		Action:      runPluginCmd,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:        "filename",
-				Aliases:     []string{"f"},
+				Name:        "plugin",
+				Aliases:     []string{"p"},
 				Required:    true,
 				TakesFile:   true,
 				Usage:       "filename for *.so plugin",
 				Destination: &filename,
+				Validator: func(v string) error {
+					if filepath.Ext(v) != ".so" {
+						return errors.New("plugin must be .so file")
+					}
+					return nil
+				},
 			},
 			&cli.StringFlag{
 				Name:        "subdomain",
 				Aliases:     []string{"d"},
-				Required:    true,
 				Usage:       "subdomain name",
+				DefaultText: "plugin filename (without .so)",
 				Destination: &subdomain,
 			},
 		},
@@ -51,6 +60,10 @@ func runPlugin(ctx context.Context, dnsMgr plugins.IPGetter, fname, subdomain st
 		timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 		ctx = timeoutCtx
+	}
+
+	if subdomain == "" {
+		subdomain = strings.TrimSuffix(filepath.Base(fname), ".so")
 	}
 
 	log.Printf("starting plugin: %q", subdomain)

@@ -8,7 +8,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"strings"
+	"path/filepath"
 
 	"github.com/calvinmclean/goblin/dns"
 	"github.com/calvinmclean/goblin/server"
@@ -40,7 +40,7 @@ var (
 				Aliases:   []string{"r"},
 				TakesFile: true,
 				Validator: func(v string) error {
-					if !strings.HasSuffix(v, ".json") {
+					if filepath.Ext(v) != ".json" {
 						return errors.New("fallback-routes must be JSON file")
 					}
 					return nil
