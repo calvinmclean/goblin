@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"plugin"
 	"runtime"
 
@@ -64,4 +66,32 @@ func Run(ctx context.Context, run RunFunc, getter IPGetter, subdomain string) er
 	}
 
 	return run(ctx, ip)
+}
+
+// Build will use `go build -buildmode=plugin` to build a Plugin and return the path to the .so file
+func Build(path string) (string, error) {
+	originalDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	defer func() {
+		_ = os.Chdir(originalDir)
+	}()
+
+	err = os.Chdir(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to chdir to plugin source: %w", err)
+	}
+
+	cmd := exec.Command("go", "build", "-buildmode=plugin")
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", errors.NewUserFixableError(err, string(output))
+	}
+
+	pluginName := filepath.Base(path)
+
+	return filepath.Join(path, pluginName) + ".so", nil
 }

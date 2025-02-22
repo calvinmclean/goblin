@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -16,8 +17,9 @@ import (
 )
 
 var (
-	filename, subdomain string
-	PluginCmd           = &cli.Command{
+	pluginFilename, subdomain string
+	isDir                     bool
+	PluginCmd                 = &cli.Command{
 		Name:        "plugin",
 		Description: "run a plugin",
 		Action:      runPluginCmd,
@@ -27,12 +29,23 @@ var (
 				Aliases:     []string{"p"},
 				Required:    true,
 				TakesFile:   true,
-				Usage:       "filename for *.so plugin",
-				Destination: &filename,
+				Usage:       "filename for *.so plugin or directory for building it",
+				Destination: &pluginFilename,
 				Validator: func(v string) error {
-					if filepath.Ext(v) != ".so" {
-						return errors.New("plugin must be .so file")
+					if filepath.Ext(v) == ".so" {
+						return nil
 					}
+
+					stat, err := os.Stat(v)
+					if err != nil {
+						return err
+					}
+
+					if !stat.IsDir() {
+						return errors.New("plugin must be .so file or directory to build from")
+					}
+					isDir = true
+
 					return nil
 				},
 			},
@@ -52,7 +65,7 @@ func runPluginCmd(ctx context.Context, c *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("error creating GRPC Client: %w", err)
 	}
-	return runPlugin(ctx, client, filename, subdomain, 0)
+	return runPlugin(ctx, client, pluginFilename, subdomain, 0)
 }
 
 func runPlugin(ctx context.Context, dnsMgr plugins.IPGetter, fname, subdomain string, timeout time.Duration) error {
@@ -64,6 +77,15 @@ func runPlugin(ctx context.Context, dnsMgr plugins.IPGetter, fname, subdomain st
 
 	if subdomain == "" {
 		subdomain = strings.TrimSuffix(filepath.Base(fname), ".so")
+	}
+
+	if isDir {
+		builtPlugin, err := plugins.Build(fname)
+		if err != nil {
+			errors.PrintUserFixableErrorInstruction(err)
+			return fmt.Errorf("error building plugin: %w", err)
+		}
+		fname = builtPlugin
 	}
 
 	run, err := plugins.Load(fname)
