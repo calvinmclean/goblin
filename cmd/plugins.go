@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/calvinmclean/goblin/dns"
+	"github.com/calvinmclean/goblin/errors"
 	"github.com/calvinmclean/goblin/plugins"
 
 	"github.com/urfave/cli/v3"
@@ -66,13 +66,13 @@ func runPlugin(ctx context.Context, dnsMgr plugins.IPGetter, fname, subdomain st
 		subdomain = strings.TrimSuffix(filepath.Base(fname), ".so")
 	}
 
-	log.Printf("starting plugin: %q", subdomain)
-
 	run, err := plugins.Load(fname)
 	if err != nil {
+		errors.PrintUserFixableErrorInstruction(err)
 		return fmt.Errorf("error loading plugin: %w", err)
 	}
 
+	log.Printf("starting plugin: %q", subdomain)
 	err = plugins.Run(ctx, run, dnsMgr, subdomain)
 	if err != nil {
 		return fmt.Errorf("error running plugin: %w", err)

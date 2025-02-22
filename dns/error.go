@@ -30,19 +30,3 @@ Use the following commands to add an IPs:
 func resolverFileInstructions(fname, expected string) string {
 	return fmt.Sprintf(resolverFileInstructionFmt, fname, expected)
 }
-
-type UserFixableError struct {
-	Err          error
-	Instructions string
-}
-
-func NewUserFixableError(err error, instructions string) UserFixableError {
-	return UserFixableError{
-		Err:          err,
-		Instructions: instructions,
-	}
-}
-
-func (e UserFixableError) Error() string {
-	return e.Err.Error()
-}

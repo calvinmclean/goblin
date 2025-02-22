@@ -2,7 +2,6 @@ package dns
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"iter"
 	"log/slog"
@@ -10,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/calvinmclean/goblin/errors"
 )
 
 const (
@@ -86,7 +87,7 @@ func (m Manager) checkIPAliases() (int, error) {
 	}
 
 	if count == 0 {
-		return 0, NewUserFixableError(errors.New("no IP aliases configured"), ipAliasInstruction)
+		return 0, errors.NewUserFixableError(errors.New("no IP aliases configured"), ipAliasInstruction)
 	}
 
 	return count, nil
@@ -110,14 +111,14 @@ func checkResolverFile(domain, dnsAddr string) error {
 	fname := fmt.Sprintf("/etc/resolver/%s", domain)
 	contents, err := os.ReadFile(fname)
 	if err != nil {
-		return NewUserFixableError(
+		return errors.NewUserFixableError(
 			fmt.Errorf("error reading resolver file: %w", err),
 			resolverFileInstructions(fname, expected),
 		)
 	}
 
 	if strings.TrimSpace(string(contents)) != expected {
-		return NewUserFixableError(
+		return errors.NewUserFixableError(
 			errors.New("unexpected contents of resolver file"),
 			resolverFileInstructions(fname, expected),
 		)

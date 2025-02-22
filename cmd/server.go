@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -11,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/calvinmclean/goblin/dns"
+	"github.com/calvinmclean/goblin/errors"
 	"github.com/calvinmclean/goblin/server"
 
 	"github.com/urfave/cli/v3"
@@ -76,10 +76,7 @@ func runServer(ctx context.Context, c *cli.Command) error {
 
 	dnsMgr, err := dns.New(topLevelDomain, dnsServerAddr, fallbackRoutes)
 	if err != nil {
-		var configErr dns.UserFixableError
-		if errors.As(err, &configErr) {
-			fmt.Println(configErr.Instructions)
-		}
+		errors.PrintUserFixableErrorInstruction(err)
 		return fmt.Errorf("error creating DNS Manager: %w", err)
 	}
 
