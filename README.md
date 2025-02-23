@@ -26,7 +26,7 @@ This consists of two main parts:
 
 ### Diagram
 
-<img src="./Goblin.svg" alt="Description" style="width:50%;">
+<img src="./Goblin.svg" alt="Description" style="width:75%;">
 
 This diagram shows the general flow of how Goblin works.
 1. Goblin Runner loads a Go plugin and registers its subdomain with the Goblin Server to get an allocated private IP
