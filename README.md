@@ -4,6 +4,14 @@
 
 Goblin is used to run Go applications locally with DNS-resolved addresses. It works by running applications on private IPs and using a custom DNS resolver and server to access them.
 
+
+## Install
+
+```shell
+go install github.com/calvinmclean/goblin@latest
+```
+
+
 ## How does it work?
 
 This consists of two main parts:
@@ -12,16 +20,19 @@ This consists of two main parts:
     - This provides a DNS server for handling DNS resolution for your applications
     - It also runs an HTTP server that allows an application to request an IP and register a subdomain
 
-2. Goblin plugin runner
+2. Goblin Runner
     - This component wraps a compiled Go plugin (`*.so` file). It handles the HTTP request to get an allocated IP and register the subdomain
     - This part is not strictly necessary since an application can be implemented to request an IP on its own. This method allows user applications to exist without any imports or specific handling related to domains and IPs
 
+### Diagram
 
-## Install
+<img src="./Goblin.svg" alt="Description" style="width:50%;">
 
-```shell
-go install github.com/calvinmclean/goblin@latest
-```
+This diagram shows the general flow of how Goblin works.
+1. Goblin Runner loads a Go plugin and registers its subdomain with the Goblin Server to get an allocated private IP
+2. Any DNS requests with Goblins top-level domain (default `.goblin`) are routed to Goblin's DNS Server by the system DNS
+3. Goblin's DNS server parses the subdomains and routes to a registered Goblin Runner
+4. If a Goblin Plugin is not running locally with the subdomain, and a fallback route is configured, it is used to proxy requests to a remote destination
 
 
 ## Getting started
