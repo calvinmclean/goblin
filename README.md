@@ -2,7 +2,11 @@
 
 **GO** **B**ack-end **L**ocal **I**nfrastructure **N**etwork
 
-Goblin is used to run Go applications locally with DNS-resolved addresses. It works by running applications on private IPs and using a custom DNS resolver and server to access them.
+Goblin is a local development tool that runs Go applications with DNS-resolved addresses (`service1.goblin`, `backend-app.goblin`, etc.). It works by running applications on private IPs and using a custom DNS resolver and server to access them.
+
+- Access different applications with consistent top-level domains (`*.goblin` by default) when they are running locally or in the cloud
+- Don't worry about port conflicts for local applications since they use private IPs
+- Use [Go plugins](https://pkg.go.dev/plugin) to run your application without any dependencies
 
 
 ## Install
