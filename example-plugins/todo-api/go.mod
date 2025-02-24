@@ -2,7 +2,7 @@ module todo-api
 
 go 1.23.4
 
-require github.com/calvinmclean/babyapi v0.23.0
+require github.com/calvinmclean/babyapi v0.25.0
 
 require (
 	github.com/FZambia/sentinel v1.1.1 // indirect

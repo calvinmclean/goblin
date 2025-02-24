@@ -2,8 +2,8 @@ github.com/FZambia/sentinel v1.1.1 h1:0ovTimlR7Ldm+wR15GgO+8C2dt7kkn+tm3PQS+Qk3E
 github.com/FZambia/sentinel v1.1.1/go.mod h1:ytL1Am/RLlAoAXG6Kj5LNuw/TRRQrv2rt2FT26vP5gI=
 github.com/ajg/form v1.5.1 h1:t9c7v8JUKu/XxOGBU0yjNpaMloxGEJhUkqFRq0ibGeU=
 github.com/ajg/form v1.5.1/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY=
-github.com/calvinmclean/babyapi v0.23.0 h1:rmYnAz80cX6TTDtbjQGt8DzjR7CDZNxkJm0/KvWRQHY=
-github.com/calvinmclean/babyapi v0.23.0/go.mod h1:zSNiVRsL3DBPOMkXxMJOTFNtzU1ZrPFKD0LFx2JVp4I=
+github.com/calvinmclean/babyapi v0.25.0 h1:tsPVovO9bPQDN6D2/bNSZONpmNTb+orlYrodk/nHURU=
+github.com/calvinmclean/babyapi v0.25.0/go.mod h1:zSNiVRsL3DBPOMkXxMJOTFNtzU1ZrPFKD0LFx2JVp4I=
 github.com/cpuguy83/go-md2man/v2 v2.0.3/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

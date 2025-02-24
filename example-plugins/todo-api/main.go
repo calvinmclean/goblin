@@ -52,16 +52,6 @@ func (t *TODO) Bind(r *http.Request) error {
 	return nil
 }
 
-func Run(ctx context.Context) error {
-	ip := os.Getenv("IP_ADDR")
-	if ip == "" {
-		ip = "0.0.0.0"
-	}
-
-	api := NewAPI().WithContext(ctx)
-	return api.Serve(ip + ":8080")
-}
-
 func NewAPI() *babyapi.API[*TODO] {
 	api := babyapi.NewAPI("TODOs", "/todos", func() *TODO { return &TODO{} })
 	api.SetGetAllFilter(func(r *http.Request) babyapi.FilterFunc[*TODO] {
@@ -83,7 +73,21 @@ func NewAPI() *babyapi.API[*TODO] {
 	return api
 }
 
+func Run(context.Context) error {
+	// remove CLI args since main() might use them
+	os.Args = []string{""}
+
+	main()
+	return nil
+}
+
 func main() {
 	api := NewAPI()
+
+	ip := os.Getenv("IP_ADDR")
+	if ip != "" {
+		api.SetAddress(ip + ":8080")
+	}
+
 	api.RunCLI()
 }
