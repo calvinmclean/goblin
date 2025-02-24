@@ -18,7 +18,7 @@
     cd example-plugins/fallback
     go build -buildmode=plugin
 
-    goblin plugin -p ./fallback.so -d fallback
+    goblin run -p ./fallback.so -d fallback
     ```
 
 4. In another terminal, use `curl` with the Goblin subdomain:

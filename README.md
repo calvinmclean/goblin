@@ -80,7 +80,7 @@ Goblin requires a few system-level changes before it can be used. Eventually the
 
 1. Run the plugin wrapper:
     ```shell
-    goblin plugin \
+    goblin run \
       -p ./example-plugins/helloworld/cmd/hello
     ```
 
@@ -134,7 +134,7 @@ This simple example demonstrates how an existing application can easily become c
 ```go
 package main()
 
-// goblin plugin --env IP_ADDR
+// goblin run --env IP_ADDR
 func Run(context.Context) error {
 	main()
 }

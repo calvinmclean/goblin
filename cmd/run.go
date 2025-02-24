@@ -19,9 +19,9 @@ import (
 var (
 	pluginFilename, subdomain, ipEnvVar string
 	isDir                               bool
-	PluginCmd                           = &cli.Command{
-		Name:        "plugin",
-		Description: "run a plugin",
+	RunCmd                              = &cli.Command{
+		Name:        "run",
+		Description: "build and run a plugin",
 		Action:      runPluginCmd,
 		Flags: []cli.Flag{
 			&cli.StringFlag{

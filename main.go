@@ -17,7 +17,7 @@ func main() {
 			cmd.ClientCmd,
 			cmd.ServerCmd,
 			cmd.ExampleCmd,
-			cmd.PluginCmd,
+			cmd.RunCmd,
 		},
 	}
 
