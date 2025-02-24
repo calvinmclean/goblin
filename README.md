@@ -30,9 +30,10 @@ This consists of two main parts:
 
 This diagram shows the general flow of how Goblin works.
 1. Goblin Runner loads a Go plugin and registers its subdomain with the Goblin Server to get an allocated private IP
-2. Any DNS requests with Goblins top-level domain (default `.goblin`) are routed to Goblin's DNS Server by the system DNS
-3. Goblin's DNS server parses the subdomains and routes to a registered Goblin Runner
-4. If a Goblin Plugin is not running locally with the subdomain, and a fallback route is configured, it is used to proxy requests to a remote destination
+2. Your system's DNS is configured to route requests with Goblins top-level domain (default `.goblin`) to the Goblin Server. This will respond with the IP of a registered Goblin Plugin based on the subdomain
+3. If a Goblin Plugin is not running locally with the subdomain, and a fallback route is configured, it is used to proxy requests to a remote destination
+
+This setup allows you to use consistent `*.goblin` host names between applications whether you are running them locally or not. You don't have to worry about port conflicts between them either.
 
 
 ## Getting started
