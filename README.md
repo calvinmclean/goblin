@@ -76,23 +76,12 @@ Goblin requires a few system-level changes before it can be used. Eventually the
     goblin server
     ```
 
-1. Implement `Run(ctx context.Context, ipAddress string) error` in your application's `main` package and compile with `go build -buildmode=plugin` (or build the existing examples in this repository)
-    ```shell
-    # clone repo for examples
-    git clone https://github.com/calvinmclean/goblin.git
-    cd goblin
-
-    task build-plugins
-    # OR
-    cd ./example-plugins/helloworld/cmd/hello && go build -buildmode=plugin
-    cd ./example-plugins/helloworld/cmd/howdy && go build -buildmode=plugin
-    ```
+1. Implement `Run(ctx context.Context, ipAddress string) error` in your application's `main` package (or use the existing examples in this repository)
 
 1. Run the plugin wrapper:
     ```shell
     goblin plugin \
-      -p ./example-plugins/helloworld/cmd/hello/hello.so \
-      -d hello
+      -p ./example-plugins/helloworld/cmd/hello
     ```
 
 1. Use `curl` to make a request to the application using the registered domain name
@@ -133,11 +122,36 @@ Goblin will look for and execute one of these symbols (in this order) from the p
 | Type                        | Symbol | Description          |
 |-----------------------------|--------|----------------------|
 | `func(ctx context.Context, ipAddress string) error` | `Run`   | The simple `Run` function can easily be used by a `main` function in a program's regular operation and also loaded by Goblin |
+| `func(ctx context.Context) error` | `Run`   | This option requires the `--env` CLI flag to tell Goblin which env var to use for the IP address. This option is great for existing applications using env vars so `Run` can just call `main()` |
 
 
 ### Example
 
-This simple Hello World example shows how `Run(ctx context.Context, ipAddress string) error` can easily be implemented into a normal program.
+### Environment Variable
+
+This simple example demonstrates how an existing application can easily become compatible with Goblin if it uses environment variables for the IP address:
+
+```go
+package main()
+
+// goblin plugin --env IP_ADDR
+func Run(context.Context) error {
+	main()
+}
+
+func main() {
+	// ...
+	ip := os.Getenv("IP_ADDR")
+	// ...
+	http.ListenAndServe(ip+":8080", handler)
+}
+```
+
+You can even put `Run` in a new file (`goblin.go`) and add to `.gitignore`!
+
+### Run(ctx context.Context, ipAddress string) error
+
+This Hello World example shows how `Run(ctx context.Context, ipAddress string) error` can easily be implemented into a normal program.
 
 ```go
 package main

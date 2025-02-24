@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	lookupErrorInstruction = `
-The following function must be implemented in the main package:
+	lookupRunErrorInstruction = `
+One of the following functions must be implemented in the main package:
     func Run(ctx context.Context, ipAddress string) error
+    func Run(ctx context.Context) error // requires --env flag
 `
 
 	pluginErrorInstructionFmt = `
@@ -44,15 +45,47 @@ func Load(fname string) (RunFunc, error) {
 
 	runSymb, err := p.Lookup("Run")
 	if err != nil {
-		return nil, errors.NewUserFixableError(err, lookupErrorInstruction)
+		return nil, errors.NewUserFixableError(err, lookupRunErrorInstruction)
 	}
 
 	runFunc, ok := runSymb.(func(context.Context, string) error)
 	if !ok {
-		return nil, errors.NewUserFixableError(fmt.Errorf("incorrect type: %T", runSymb), lookupErrorInstruction)
+		return nil, errors.NewUserFixableError(fmt.Errorf("incorrect type: %T", runSymb), lookupRunErrorInstruction)
 	}
 
 	return RunFunc(runFunc), nil
+}
+
+func LoadMainWithIPEnvVar(fname, ipEnvVar string) (RunFunc, error) {
+	_, err := os.Stat(fname)
+	if err != nil {
+		return nil, errors.NewUserFixableError(err, "\nDoes the file exist?\n")
+	}
+
+	p, err := plugin.Open(fname)
+	if err != nil {
+		return nil, errors.NewUserFixableError(err, fmt.Sprintf(pluginErrorInstructionFmt, runtime.Version()))
+	}
+
+	runSymb, err := p.Lookup("Run")
+	if err != nil {
+		return nil, errors.NewUserFixableError(err, lookupRunErrorInstruction)
+	}
+
+	runFunc, ok := runSymb.(func(context.Context) error)
+	if !ok {
+		return nil, errors.NewUserFixableError(fmt.Errorf("incorrect type: %T", runSymb), lookupRunErrorInstruction)
+	}
+
+	return func(ctx context.Context, ipAddr string) error {
+		err := os.Setenv(ipEnvVar, ipAddr)
+		if err != nil {
+			return fmt.Errorf("error setting IP env var: %w", err)
+		}
+
+		runFunc(ctx)
+		return nil
+	}, nil
 }
 
 type IPGetter interface {

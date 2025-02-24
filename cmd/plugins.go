@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	pluginFilename, subdomain string
-	isDir                     bool
-	PluginCmd                 = &cli.Command{
+	pluginFilename, subdomain, ipEnvVar string
+	isDir                               bool
+	PluginCmd                           = &cli.Command{
 		Name:        "plugin",
 		Description: "run a plugin",
 		Action:      runPluginCmd,
@@ -56,6 +56,13 @@ var (
 				DefaultText: "plugin filename (without .so)",
 				Destination: &subdomain,
 			},
+			&cli.StringFlag{
+				Name:    "env",
+				Aliases: []string{"e"},
+				Usage: "environment variable to communicate IP. Goblin will set this env var" +
+					" with the allocated IP and run your application's main() function",
+				Destination: &ipEnvVar,
+			},
 		},
 	}
 )
@@ -88,7 +95,14 @@ func runPlugin(ctx context.Context, dnsMgr plugins.IPGetter, fname, subdomain st
 		fname = builtPlugin
 	}
 
-	run, err := plugins.Load(fname)
+	var err error
+	var run plugins.RunFunc
+	if ipEnvVar != "" {
+		run, err = plugins.LoadMainWithIPEnvVar(fname, ipEnvVar)
+	} else {
+		run, err = plugins.Load(fname)
+	}
+
 	if err != nil {
 		errors.PrintUserFixableErrorInstruction(err)
 		return fmt.Errorf("error loading plugin: %w", err)

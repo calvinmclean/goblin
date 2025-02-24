@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/calvinmclean/babyapi"
@@ -51,7 +52,12 @@ func (t *TODO) Bind(r *http.Request) error {
 	return nil
 }
 
-func Run(ctx context.Context, ip string) error {
+func Run(ctx context.Context) error {
+	ip := os.Getenv("IP_ADDR")
+	if ip == "" {
+		ip = "0.0.0.0"
+	}
+
 	api := NewAPI().WithContext(ctx)
 	return api.Serve(ip + ":8080")
 }

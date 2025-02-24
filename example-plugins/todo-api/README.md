@@ -2,12 +2,10 @@
 
 This runs a simple TODO list API build with [babyapi](https://github.com/calvinmclean/babyapi).
 
-```shell
-cd ./example-plugins/todo-api
-go build -buildmode=plugin
+This example implements `func Run(context.Context) error` and reads the IP address from IP_ADDR env var.
 
-cd -
-go run main.go plugin -p ./example-plugins/todo-api/todo-api.so -d todo
+```shell
+goblin plugin -p ./example-plugins/todo-api -d todo --env IP_ADDR
 ```
 
 Then access with API with `curl` or `go run`:
