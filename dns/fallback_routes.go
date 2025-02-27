@@ -58,11 +58,11 @@ func stopServers(servers []*http.Server) error {
 }
 
 func (m Manager) handleFallbackRoutes(subdomain string) (*record, error) {
-	if m.fallbackRoutes == nil {
+	if m.FallbackRoutes == nil {
 		return nil, nil
 	}
 
-	fallback, ok := m.fallbackRoutes[subdomain]
+	fallback, ok := m.FallbackRoutes[subdomain]
 	if !ok {
 		return nil, nil
 	}

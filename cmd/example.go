@@ -23,7 +23,10 @@ var ExampleCmd = &cli.Command{
 func runExample(ctx context.Context, c *cli.Command) error {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
-	dnsMgr, err := dns.New("goblin", net.JoinHostPort(defaultAddr, defaultDNSPort), nil)
+	dnsMgr, err := dns.New(dns.Config{
+		Domain:  "goblin",
+		Address: net.JoinHostPort(defaultAddr, defaultDNSPort),
+	})
 	if err != nil {
 		return fmt.Errorf("error creating DNS Manager: %w", err)
 	}

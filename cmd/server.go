@@ -93,7 +93,11 @@ func runServer(ctx context.Context, c *cli.Command) error {
 		}
 	}
 
-	dnsMgr, err := dns.New(topLevelDomain, net.JoinHostPort(defaultAddr, dnsPort), fallbackRoutes)
+	dnsMgr, err := dns.New(dns.Config{
+		Domain:         topLevelDomain,
+		Address:        net.JoinHostPort(defaultAddr, dnsPort),
+		FallbackRoutes: fallbackRoutes,
+	})
 	if err != nil {
 		errors.PrintUserFixableErrorInstruction(err)
 		return fmt.Errorf("error creating DNS Manager: %w", err)

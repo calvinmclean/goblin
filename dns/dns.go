@@ -9,12 +9,12 @@ import (
 )
 
 func (m Manager) RunDNS(ctx context.Context) error {
-	conn, err := net.ListenPacket("udp", m.addr)
+	conn, err := net.ListenPacket("udp", m.Address)
 	if err != nil {
 		return fmt.Errorf("failed to create UDP listener: %w", err)
 	}
 
-	m.logger.Info("started local DNS server", "addr", m.addr)
+	m.logger.Info("started local DNS server", "addr", m.Address)
 
 	buffer := make([]byte, 512)
 	for {
@@ -56,7 +56,7 @@ func (m Manager) handleDNSRequest(conn net.PacketConn, clientAddr net.Addr, requ
 
 	m.logger.Debug("received DNS request", "domain", domain)
 
-	if !strings.HasSuffix(domain, m.domain) {
+	if !strings.HasSuffix(domain, m.Domain) {
 		// Ignore this DNS domain
 		if domain == "_dns.resolver.arpa" {
 			return nil

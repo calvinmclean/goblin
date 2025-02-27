@@ -31,35 +31,37 @@ func (r *record) isActive() bool {
 }
 
 type Manager struct {
+	Config
+
 	// allocatedIPs and subdomains point to the same data but with IP or Subdomain as the key
 	allocatedIPs map[string]*record
 	subdomains   map[string]*record
 
-	addr           string
-	domain         string
-	subnet         *net.IPNet
-	fallbackRoutes FallbackRoutes
-
+	subnet *net.IPNet
 	logger *slog.Logger
 }
 
-func New(domain, dnsAddr string, fallbackRoutes FallbackRoutes) (Manager, error) {
+type Config struct {
+	Address        string
+	Domain         string
+	FallbackRoutes FallbackRoutes
+}
+
+func New(cfg Config) (Manager, error) {
 	_, subnet, err := net.ParseCIDR(defaultSubnet)
 	if err != nil {
 		return Manager{}, fmt.Errorf("error parsing subnet: %w", err)
 	}
 
 	manager := Manager{
-		allocatedIPs:   map[string]*record{},
-		subdomains:     map[string]*record{},
-		addr:           dnsAddr,
-		subnet:         subnet,
-		domain:         domain,
-		fallbackRoutes: fallbackRoutes,
-		logger:         slog.Default(),
+		Config:       cfg,
+		allocatedIPs: map[string]*record{},
+		subdomains:   map[string]*record{},
+		subnet:       subnet,
+		logger:       slog.Default(),
 	}
 
-	err = checkResolverFile(domain, dnsAddr)
+	err = checkResolverFile(cfg.Domain, cfg.Address)
 	if err != nil {
 		return Manager{}, err
 	}
