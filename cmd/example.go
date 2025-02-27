@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net"
 	"time"
 
 	"github.com/calvinmclean/goblin/dns"
@@ -22,7 +23,7 @@ var ExampleCmd = &cli.Command{
 func runExample(ctx context.Context, c *cli.Command) error {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
-	dnsMgr, err := dns.New("goblin", dnsServerAddr, nil)
+	dnsMgr, err := dns.New("goblin", net.JoinHostPort(defaultAddr, defaultDNSPort), nil)
 	if err != nil {
 		return fmt.Errorf("error creating DNS Manager: %w", err)
 	}
@@ -52,7 +53,7 @@ func runExample(ctx context.Context, c *cli.Command) error {
 		}
 	}()
 
-	server := server.New(dnsMgr, serverAddr)
+	server := server.New(dnsMgr, net.JoinHostPort(defaultAddr, defaultServerPort))
 	err = server.Run(ctx)
 	if err != nil {
 		log.Fatalf("error running GRPC server: %v", err)

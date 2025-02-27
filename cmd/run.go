@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -63,12 +64,19 @@ var (
 					" with the allocated IP and run your application's main() function",
 				Destination: &ipEnvVar,
 			},
+			&cli.StringFlag{
+				Name:        "port",
+				Value:       defaultServerPort,
+				Usage:       "port to reach the API server running locally",
+				Destination: &serverPort,
+				Sources:     cli.ValueSourceChain{Chain: []cli.ValueSource{portEnvVar}},
+			},
 		},
 	}
 )
 
 func runPluginCmd(ctx context.Context, c *cli.Command) error {
-	client, err := dns.NewHTTPClient(serverAddr)
+	client, err := dns.NewHTTPClient(net.JoinHostPort(defaultAddr, serverPort))
 	if err != nil {
 		return fmt.Errorf("error creating GRPC Client: %w", err)
 	}

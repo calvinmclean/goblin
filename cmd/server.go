@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -17,13 +18,16 @@ import (
 )
 
 const (
-	serverAddr    = "127.0.0.1:8080"
-	dnsServerAddr = "127.0.0.1:5053"
+	defaultAddr       = "127.0.0.1"
+	defaultServerPort = "8080"
+	defaultDNSPort    = "5053"
 )
 
 var (
-	topLevelDomain, fallbackConfig string
-	ServerCmd                      = &cli.Command{
+	portEnvVar = cli.EnvVar("GOBLIN_PORT")
+
+	topLevelDomain, fallbackConfig, serverPort, dnsPort string
+	ServerCmd                                           = &cli.Command{
 		Name:        "server",
 		Description: "run server",
 		Action:      runServer,
@@ -34,6 +38,21 @@ var (
 				Value:       "goblin",
 				Usage:       "top-level domain name to use",
 				Destination: &topLevelDomain,
+			},
+			&cli.StringFlag{
+				Name:        "port",
+				Aliases:     []string{"p"},
+				Value:       defaultServerPort,
+				Usage:       "port to run the API server on",
+				Destination: &serverPort,
+				Sources:     cli.ValueSourceChain{Chain: []cli.ValueSource{portEnvVar}},
+			},
+			&cli.StringFlag{
+				Name:        "dns-port",
+				Aliases:     []string{"s"},
+				Value:       defaultDNSPort,
+				Usage:       "port to run the DNS server on",
+				Destination: &dnsPort,
 			},
 			&cli.StringFlag{
 				Name:      "fallback-routes",
@@ -74,13 +93,13 @@ func runServer(ctx context.Context, c *cli.Command) error {
 		}
 	}
 
-	dnsMgr, err := dns.New(topLevelDomain, dnsServerAddr, fallbackRoutes)
+	dnsMgr, err := dns.New(topLevelDomain, net.JoinHostPort(defaultAddr, dnsPort), fallbackRoutes)
 	if err != nil {
 		errors.PrintUserFixableErrorInstruction(err)
 		return fmt.Errorf("error creating DNS Manager: %w", err)
 	}
 
-	server := server.New(dnsMgr, serverAddr)
+	server := server.New(dnsMgr, net.JoinHostPort(defaultAddr, serverPort))
 	err = server.Run(ctx)
 	if err != nil {
 		log.Fatalf("error running GRPC server: %v", err)
