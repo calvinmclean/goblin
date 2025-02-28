@@ -265,6 +265,7 @@ func (m Manager) findOldestDeallocatedIP(unallocatedIPs []net.IP) *record {
 }
 
 func (m Manager) allocateIPRecord(ctx context.Context, rec *record) {
+	rec.removedAt = nil
 	m.allocatedIPs[rec.ip.String()] = rec
 	m.subdomains[rec.subdomain] = rec
 	go m.removeIP(ctx, rec)
