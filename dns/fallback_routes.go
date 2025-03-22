@@ -22,22 +22,38 @@ func (m Manager) handleFallbackRoutes(subdomain string) (*record, error) {
 
 	logger := m.logger.With(
 		"subdomain", subdomain,
-		"hostname", fallback,
+		"fallback", fallback,
 	)
 
 	logger.Debug("found fallback configuration")
 
-	remoteIP, err := lookupIP(fallback)
+	rec := &record{
+		subdomain: "Remote Address (no subdomain)",
+	}
+
+	fallbackIP, ok := asIP(fallback)
+	if ok {
+		rec.ip = fallbackIP
+		return rec, nil
+	}
+
+	var err error
+	rec.ip, err = lookupIP(fallback)
 	if err != nil {
 		return nil, fmt.Errorf("error finding IP for remote address: %w", err)
 	}
 
-	m.logger.With("remote_ip", remoteIP.String()).Debug("found IP address for fallback route")
+	m.logger.With("remote_ip", rec.ip.String()).Debug("found IP address for fallback route")
 
-	return &record{
-		ip:        remoteIP,
-		subdomain: "Remote Address (no subdomain)",
-	}, nil
+	return rec, nil
+}
+
+func asIP(fallback string) (net.IP, bool) {
+	ip := net.ParseIP(fallback)
+	if ip == nil {
+		return nil, false
+	}
+	return ip.To4(), true
 }
 
 func lookupIP(domain string) (net.IP, error) {
