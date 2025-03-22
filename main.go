@@ -19,6 +19,7 @@ func main() {
 			cmd.ExampleCmd,
 			cmd.RunCmd,
 			cmd.RegisterCmd,
+			cmd.DockerCmd,
 		},
 	}
 
