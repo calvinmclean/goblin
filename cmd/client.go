@@ -13,7 +13,7 @@ import (
 
 var ClientCmd = &cli.Command{
 	Name:        "client",
-	Description: "run client",
+	Description: "run client to demonstrate registering an IP for the lifecycle of a program",
 	Action:      runClient,
 	Flags: []cli.Flag{
 		&cli.StringFlag{

@@ -16,7 +16,7 @@ import (
 
 var ExampleCmd = &cli.Command{
 	Name:        "example",
-	Description: "run example",
+	Description: "run example to demonstrate. This will run the server, start a few example plugins, and then shutdown",
 	Action:      runExample,
 }
 
@@ -41,7 +41,7 @@ func runExample(ctx context.Context, c *cli.Command) error {
 	go func() {
 		time.Sleep(5 * time.Second)
 
-		err := runPlugin(ctx, dnsMgr, "./example-plugins/helloworld/cmd/hello/howdy.so", "howdy", 0)
+		err := runPlugin(ctx, dnsMgr, "./example-plugins/helloworld/cmd/howdy/howdy.so", "howdy", 0)
 		if err != nil {
 			panic(err)
 		}
@@ -50,7 +50,7 @@ func runExample(ctx context.Context, c *cli.Command) error {
 	go func() {
 		time.Sleep(15 * time.Second)
 
-		err := runPlugin(ctx, dnsMgr, "./example-plugins/helloworld/cmd/hello/howdy.so", "howdynew", 0)
+		err := runPlugin(ctx, dnsMgr, "./example-plugins/helloworld/cmd/howdy/howdy.so", "howdynew", 0)
 		if err != nil {
 			panic(err)
 		}
