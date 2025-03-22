@@ -60,6 +60,10 @@ func New(cfg Config) (Manager, error) {
 		logger:       slog.Default(),
 	}
 
+	if manager.Config.FallbackRoutes == nil {
+		manager.Config.FallbackRoutes = map[string]string{}
+	}
+
 	err = checkResolverFile(cfg.Domain, cfg.Address)
 	if err != nil {
 		return Manager{}, err

@@ -62,7 +62,8 @@ func (s Server) Run(ctx context.Context) error {
 
 func (s Server) RunHTTP(ctx context.Context) error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/allocate", s.allocateIPHandler)
+	mux.HandleFunc("POST /allocate/{subdomain}", s.allocateIPHandler)
+	mux.HandleFunc("POST /register/{subdomain}", s.registerFallbackHandler)
 	s.server.Handler = mux
 
 	s.logger.Info("started local HTTP server", "addr", s.server.Addr)
@@ -70,23 +71,45 @@ func (s Server) RunHTTP(ctx context.Context) error {
 	return s.server.ListenAndServe()
 }
 
-func (s Server) allocateIPHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+func (s Server) registerFallbackHandler(w http.ResponseWriter, r *http.Request) {
+	err := s.registerFallback(w, r)
+	if err != nil {
+		s.logger.Error("error registering fallback", "error", err)
+		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
+}
 
+func (s Server) registerFallback(w http.ResponseWriter, r *http.Request) error {
+	subdomain := r.PathValue("subdomain")
+	if subdomain == "" {
+		return errors.New("missing required subdomain path variable")
+	}
+
+	address := r.URL.Query().Get("address")
+	if address == "" {
+		return errors.New("missing address")
+	}
+
+	s.mgr.RegisterFallback(subdomain, address)
+
+	w.WriteHeader(http.StatusAccepted)
+	return nil
+}
+
+func (s Server) allocateIPHandler(w http.ResponseWriter, r *http.Request) {
 	err := s.allocateIP(w, r)
 	if err != nil {
 		s.logger.Error("error allocating IP", "error", err)
 		http.Error(w, "server error", http.StatusInternalServerError)
+		return
 	}
 }
 
 func (s Server) allocateIP(w http.ResponseWriter, r *http.Request) error {
-	subdomain := r.URL.Query().Get("subdomain")
+	subdomain := r.PathValue("subdomain")
 	if subdomain == "" {
-		return errors.New("missing subdomain")
+		return errors.New("missing required subdomain path variable")
 	}
 
 	ip, err := s.mgr.GetIP(r.Context(), subdomain)

@@ -23,6 +23,13 @@ var ClientCmd = &cli.Command{
 			Destination: &serverPort,
 			Sources:     cli.ValueSourceChain{Chain: []cli.ValueSource{portEnvVar}},
 		},
+		&cli.StringFlag{
+			Name:        "subdomain",
+			Aliases:     []string{"d"},
+			Usage:       "subdomain name",
+			Destination: &subdomain,
+			Required:    true,
+		},
 	},
 }
 
@@ -30,11 +37,6 @@ func runClient(ctx context.Context, c *cli.Command) error {
 	client, err := dns.NewHTTPClient(net.JoinHostPort(defaultAddr, serverPort))
 	if err != nil {
 		return fmt.Errorf("error creating client: %w", err)
-	}
-
-	subdomain := c.Args().First()
-	if subdomain == "" {
-		subdomain = "test"
 	}
 
 	ip, err := client.GetIP(ctx, subdomain)

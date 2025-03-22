@@ -11,10 +11,6 @@ import (
 type FallbackRoutes map[string]string
 
 func (m Manager) handleFallbackRoutes(subdomain string) (*record, error) {
-	if m.FallbackRoutes == nil {
-		return nil, nil
-	}
-
 	fallback, ok := m.FallbackRoutes[subdomain]
 	if !ok {
 		return nil, nil
@@ -70,4 +66,9 @@ func lookupIP(domain string) (net.IP, error) {
 	}
 
 	return nil, errors.New("no ip found for domain")
+}
+
+// RegisterFallback allows registering a fallback domain that will be used if a Goblin plugin is not running
+func (m Manager) RegisterFallback(subdomain, address string) {
+	m.FallbackRoutes[subdomain] = address
 }

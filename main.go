@@ -18,6 +18,7 @@ func main() {
 			cmd.ServerCmd,
 			cmd.ExampleCmd,
 			cmd.RunCmd,
+			cmd.RegisterCmd,
 		},
 	}
 
