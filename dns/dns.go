@@ -54,7 +54,7 @@ func (m Manager) handleDNSRequest(conn net.PacketConn, clientAddr net.Addr, requ
 	query := request[12:]
 	domain := parseDomain(query)
 
-	m.logger.Debug("received DNS request", "domain", domain)
+	m.logger.Info("received DNS request", "domain", domain)
 
 	if !strings.HasSuffix(domain, m.Domain) {
 		// Ignore this DNS domain
@@ -68,17 +68,18 @@ func (m Manager) handleDNSRequest(conn net.PacketConn, clientAddr net.Addr, requ
 
 	rec, ok := m.subdomains[subdomain]
 	if !ok || !rec.isActive() {
-		// if a domain is not registered or is registered but un-allocated, spin up a reverse proxy
+		// if a domain is not registered or is registered but un-allocated, check for fallback routes
+		m.logger.Debug("checking for fallback routes")
 		var err error
 		rec, err = m.handleFallbackRoutes(subdomain)
 		if err != nil {
-			return fmt.Errorf("error running reverse proxy: %w", err)
+			return fmt.Errorf("error handling fallback routes: %w", err)
 		}
 		if rec == nil {
 			return fmt.Errorf("no record found for subdomain %q", subdomain)
 		}
 	}
-	m.logger.Debug("found ip for subdomain", "subdomain", subdomain, "ip", rec.ip.String())
+	m.logger.Info("responding with ip", "subdomain", subdomain, "ip", rec.ip.String())
 
 	response := m.createDNSResponse(request, rec.ip)
 	if response == nil {

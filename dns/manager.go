@@ -23,7 +23,6 @@ type record struct {
 	ip        net.IP
 	subdomain string
 	removedAt *time.Time
-	stop      func() error
 }
 
 func (r *record) isActive() bool {
@@ -165,7 +164,7 @@ func (m Manager) getExistingRecord(subdomain string) (*record, error) {
 		return nil, nil
 	}
 
-	if rec.isActive() && rec.stop == nil {
+	if rec.isActive() {
 		return nil, ErrSubdomainInUse
 	}
 
@@ -210,7 +209,7 @@ func (m Manager) findOrCreateRecord(subdomain string) (*record, error) {
 		return nil, err
 	}
 	if ip != nil {
-		return &record{ip, subdomain, nil, nil}, nil
+		return &record{ip, subdomain, nil}, nil
 	}
 
 	// if all unallocated IPs are exhausted, use the oldest removed IP
@@ -227,14 +226,6 @@ func (m Manager) GetIP(ctx context.Context, subdomain string) (string, error) {
 	rec, err := m.findOrCreateRecord(subdomain)
 	if err != nil {
 		return "", err
-	}
-	// if a reverse proxy is running, stop it since it will be replaced by plugin
-	if rec.stop != nil {
-		err = rec.stop()
-		if err != nil {
-			m.logger.Error("error stopping reverse proxy", "ip", rec.ip.String(), "error", err)
-		}
-		rec.stop = nil
 	}
 
 	m.allocateIPRecord(ctx, rec)
