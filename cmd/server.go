@@ -39,14 +39,7 @@ var (
 				Usage:       "top-level domain name to use",
 				Destination: &topLevelDomain,
 			},
-			&cli.StringFlag{
-				Name:        "port",
-				Aliases:     []string{"p"},
-				Value:       defaultServerPort,
-				Usage:       "port to run the API server on",
-				Destination: &serverPort,
-				Sources:     cli.ValueSourceChain{Chain: []cli.ValueSource{portEnvVar}},
-			},
+			portFlag,
 			&cli.StringFlag{
 				Name:        "dns-port",
 				Aliases:     []string{"s"},

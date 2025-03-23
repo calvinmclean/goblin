@@ -18,13 +18,7 @@ var (
 		Description: "register a fallback route with the server",
 		Action:      runRegister,
 		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "port",
-				Value:       defaultServerPort,
-				Usage:       "port to reach the API server running locally",
-				Destination: &serverPort,
-				Sources:     cli.ValueSourceChain{Chain: []cli.ValueSource{portEnvVar}},
-			},
+			portFlag,
 			&cli.StringFlag{
 				Name:        "subdomain",
 				Aliases:     []string{"d"},

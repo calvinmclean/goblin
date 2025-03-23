@@ -16,13 +16,7 @@ var ClientCmd = &cli.Command{
 	Description: "run client to demonstrate registering an IP for the lifecycle of a program",
 	Action:      runClient,
 	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:        "port",
-			Value:       defaultServerPort,
-			Usage:       "port to reach the API server running locally",
-			Destination: &serverPort,
-			Sources:     cli.ValueSourceChain{Chain: []cli.ValueSource{portEnvVar}},
-		},
+		portFlag,
 		&cli.StringFlag{
 			Name:        "subdomain",
 			Aliases:     []string{"d"},

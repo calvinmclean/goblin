@@ -18,6 +18,14 @@ import (
 )
 
 var (
+	portFlag = &cli.StringFlag{
+		Name:        "port",
+		Value:       defaultServerPort,
+		Usage:       "port to reach the API server running locally",
+		Destination: &serverPort,
+		Sources:     cli.ValueSourceChain{Chain: []cli.ValueSource{portEnvVar}},
+	}
+
 	pluginFilename, subdomain, ipEnvVar string
 	isDir                               bool
 	RunCmd                              = &cli.Command{
@@ -64,13 +72,7 @@ var (
 					" with the allocated IP and run your application's main() function",
 				Destination: &ipEnvVar,
 			},
-			&cli.StringFlag{
-				Name:        "port",
-				Value:       defaultServerPort,
-				Usage:       "port to reach the API server running locally",
-				Destination: &serverPort,
-				Sources:     cli.ValueSourceChain{Chain: []cli.ValueSource{portEnvVar}},
-			},
+			portFlag,
 		},
 	}
 )
