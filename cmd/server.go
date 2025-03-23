@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	defaultAddr       = "127.0.0.1"
-	defaultServerPort = "8080"
+	defaultAddr = "127.0.0.1"
+	// GOB port (G=7, O=15, 2=B)
+	defaultServerPort = "7152"
 	defaultDNSPort    = "5053"
 )
 
