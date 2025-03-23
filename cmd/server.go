@@ -66,10 +66,7 @@ var (
 				},
 				Usage: `path to a JSON file holding fallback route config in this format:
 {
-  "subdomain": {
-    "Hostname": "remote-server.mydomain",
-    "Ports": [8080]
-  }
+  "subdomain": "remote-server.com"
 }`,
 				Destination: &fallbackConfig,
 			},
