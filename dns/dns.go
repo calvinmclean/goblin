@@ -43,6 +43,12 @@ func getSubdomain(d string) string {
 	if len(parts) == 0 {
 		return ""
 	}
+	// Sometimes the web-browser throws a 'www.' in front of the domain
+	if parts[0] == "www" {
+		if len(parts) >= 2 {
+			return parts[1]
+		}
+	}
 	return parts[0]
 }
 
