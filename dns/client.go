@@ -31,7 +31,8 @@ func (c Client) GetIP(ctx context.Context, subdomain string) (string, error) {
 		return "", fmt.Errorf("failed to send request to server: %w", err)
 	}
 
-	if resp.StatusCode != http.StatusAccepted {
+	if resp.StatusCode != http.StatusCreated {
+		fmt.Println("STTUS", resp.StatusCode)
 		printResponseBody(resp)
 		return "", fmt.Errorf("unexpected response status: %d", resp.StatusCode)
 	}
@@ -70,7 +71,7 @@ func (c Client) RegisterFallback(subdomain, address string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusAccepted {
+	if resp.StatusCode != http.StatusCreated {
 		printResponseBody(resp)
 		return fmt.Errorf("unexpected response status: %d", resp.StatusCode)
 	}

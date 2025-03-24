@@ -93,7 +93,7 @@ func (s Server) registerFallback(w http.ResponseWriter, r *http.Request) error {
 
 	s.mgr.RegisterFallback(subdomain, address)
 
-	w.WriteHeader(http.StatusAccepted)
+	w.WriteHeader(http.StatusCreated)
 	return nil
 }
 
@@ -122,6 +122,7 @@ func (s Server) allocateIP(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("flush unsupported")
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintln(w, ip)
 	flusher.Flush()
 
