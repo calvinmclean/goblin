@@ -7,6 +7,7 @@ Goblin is a local development tool that runs Go applications with DNS-resolved a
 - Access different applications with consistent top-level domains (`*.goblin` by default) when they are running locally or in the cloud
 - Don't worry about port conflicts for local applications since they use private IPs
 - Use [Go plugins](https://pkg.go.dev/plugin) to run your application without any dependencies
+- Use custom domain names for local Docker containers
 
 
 ## Install
@@ -27,6 +28,8 @@ This consists of two main parts:
 2. Goblin Runner
     - This component wraps a compiled Go plugin (`*.so` file). It handles the HTTP request to get an allocated IP and register the subdomain
     - This part is not strictly necessary since an application can be implemented to request an IP on its own. This method allows user applications to exist without any imports or specific handling related to domains and IPs
+
+The `goblin` CLI is used to run the server, execute plugins, and use the server's API to register fallback routes and docker domains.
 
 ### Diagram
 
@@ -99,6 +102,29 @@ When `FallbackRoutes` are configured, Goblin will automatically proxy requests t
 This is useful for microservices development because Goblin can automatically detect if your dependent service is running locally (as a Goblin plugin) and route to a development cloud environment if it's not.
 
 See [`example-fallback-routes.json`](./example-fallback-routes.json) for an example of how this is configured. Pass your routes filename to `goblin server` with `--fallback-routes` or `-r`.
+
+You can also use the Goblin server's API with the CLI to register routes when the applications is already running:
+
+```shell
+goblin register -d jsonplaceholder -a jsonplaceholder.typicode.com
+```
+
+
+## Docker
+
+The `goblin docker` command is a shortcut for registering local docker containers as fallback routes. Since Docker already allocates local IPs for containers, Goblin can use the Docker API to get this IP and route to it.
+
+
+```shell
+# Run Docker container
+docker run --rm -p 80:80 --name nginx nginx
+
+# Register container with Goblin
+goblin docker -c nginx
+
+# Interact with the container with curl or your web browser
+curl http://nginx.goblin
+```
 
 
 ## About plugins
