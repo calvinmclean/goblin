@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -30,15 +31,16 @@ func (c Client) GetIP(ctx context.Context, subdomain string) (string, error) {
 		return "", fmt.Errorf("failed to send request to server: %w", err)
 	}
 
+	if resp.StatusCode != http.StatusAccepted {
+		printResponseBody(resp)
+		return "", fmt.Errorf("unexpected response status: %d", resp.StatusCode)
+	}
+
 	ip, err := bufio.NewReader(resp.Body).ReadString('\n')
 	if err != nil {
 		return "", fmt.Errorf("failed to read request body: %w", err)
 	}
 	ip = strings.TrimSpace(ip)
-
-	if ip == "server error" {
-		return "", fmt.Errorf("failed to get IP: %s", ip)
-	}
 
 	// keep the connection open until the context is done
 	go func() {
@@ -66,10 +68,20 @@ func (c Client) RegisterFallback(subdomain, address string) error {
 	if err != nil {
 		return fmt.Errorf("failed to send request to server: %w", err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusAccepted {
+		printResponseBody(resp)
 		return fmt.Errorf("unexpected response status: %d", resp.StatusCode)
 	}
 
 	return nil
+}
+
+func printResponseBody(r *http.Response) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		fmt.Printf("error reading response body: %v\n", err)
+	}
+	fmt.Println(string(body))
 }

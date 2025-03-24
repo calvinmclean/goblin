@@ -75,7 +75,7 @@ func (s Server) registerFallbackHandler(w http.ResponseWriter, r *http.Request) 
 	err := s.registerFallback(w, r)
 	if err != nil {
 		s.logger.Error("error registering fallback", "error", err)
-		http.Error(w, "server error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -101,7 +101,7 @@ func (s Server) allocateIPHandler(w http.ResponseWriter, r *http.Request) {
 	err := s.allocateIP(w, r)
 	if err != nil {
 		s.logger.Error("error allocating IP", "error", err)
-		http.Error(w, "server error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
